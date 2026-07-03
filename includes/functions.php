@@ -263,17 +263,21 @@ function imagePath(string $folder, ?string $filename): string
 
 function isPromotionActive(array $variant): bool
 {
-    if (empty($variant['promotion_price'])) {
-        return false;
-    }
-
-    if (empty($variant['promotion_start']) || empty($variant['promotion_end'])) {
+    if (empty($variant['promotion_price']) || (float) $variant['promotion_price'] <= 0) {
         return false;
     }
 
     $today = date('Y-m-d');
 
-    return $today >= $variant['promotion_start'] && $today <= $variant['promotion_end'];
+    if (!empty($variant['promotion_start']) && $today < $variant['promotion_start']) {
+        return false;
+    }
+
+    if (!empty($variant['promotion_end']) && $today > $variant['promotion_end']) {
+        return false;
+    }
+
+    return true;
 }
 
 function socialUrl(string $platform, ?string $value): string
@@ -370,6 +374,30 @@ function getHomeCategories(PDO $pdo, string $langCode): array
 
     return $stmt->fetchAll();
 }
+function getProductImagesForVariants(PDO $pdo, array $variantIds): array
+{
+    if (empty($variantIds)) {
+        return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($variantIds), '?'));
+    $stmt = $pdo->prepare(
+        "SELECT id_variant, image
+         FROM product_images
+         WHERE id_variant IN ($placeholders)
+         ORDER BY id_variant, is_primary DESC, id_image ASC"
+    );
+    $stmt->execute(array_values($variantIds));
+    $rows = $stmt->fetchAll();
+
+    $result = [];
+    foreach ($rows as $row) {
+        $result[(int) $row['id_variant']][] = $row['image'];
+    }
+
+    return $result;
+}
+
 function getNewArrivalProducts(PDO $pdo, string $langCode, int $limit = 5): array
 {
     $stmt = $pdo->prepare(
@@ -443,17 +471,16 @@ function getPromotionProducts(PDO $pdo, string $langCode, int $limit = 8): array
          LEFT JOIN languages l_fr ON l_fr.code = "fr"
          LEFT JOIN product_translations pt_fr ON pt_fr.id_product = p.id_product AND pt_fr.id_language = l_fr.id_language
          INNER JOIN product_variants pv ON pv.id_variant = (
-             SELECT pv2.id_variant
-             FROM product_variants pv2
-             WHERE pv2.id_product = p.id_product
-               AND pv2.status = 1
-               AND pv2.promotion_price IS NOT NULL
-               AND pv2.promotion_start IS NOT NULL
-               AND pv2.promotion_end IS NOT NULL
-               AND pv2.promotion_start <= CURDATE()
-               AND pv2.promotion_end >= CURDATE()
-             ORDER BY pv2.discount_percentage DESC, pv2.id_variant ASC
-             LIMIT 1
+              SELECT pv2.id_variant
+              FROM product_variants pv2
+              WHERE pv2.id_product = p.id_product
+                AND pv2.status = 1
+                AND pv2.promotion_price IS NOT NULL
+                AND pv2.promotion_price > 0
+                AND (pv2.promotion_start IS NULL OR pv2.promotion_start <= CURDATE())
+                AND (pv2.promotion_end IS NULL OR pv2.promotion_end >= CURDATE())
+              ORDER BY pv2.discount_percentage DESC, pv2.id_variant ASC
+              LIMIT 1
          )
          ' . productImageJoinSql() . '
          WHERE p.status = 1
@@ -499,11 +526,15 @@ function getProductDisplayPrice(array $product): array
 
 function getProductDiscountLabel(array $product): string
 {
+    if (!isPromotionActive($product)) {
+        return '';
+    }
+
     if (!empty($product['discount_percentage'])) {
         return '-' . (int) $product['discount_percentage'] . '%';
     }
 
-    if (isPromotionActive($product) && (float) $product['price'] > 0) {
+    if ((float) $product['price'] > 0) {
         $discount = round(
             (((float) $product['price'] - (float) $product['promotion_price'])
                 / (float) $product['price']) * 100
@@ -912,10 +943,9 @@ function getShopEffectivePriceSql(string $alias = 'pv'): string
 {
     return 'CASE
         WHEN ' . $alias . '.promotion_price IS NOT NULL
-            AND ' . $alias . '.promotion_start IS NOT NULL
-            AND ' . $alias . '.promotion_end IS NOT NULL
-            AND CURDATE() >= ' . $alias . '.promotion_start
-            AND CURDATE() <= ' . $alias . '.promotion_end
+            AND ' . $alias . '.promotion_price > 0
+            AND (' . $alias . '.promotion_start IS NULL OR CURDATE() >= ' . $alias . '.promotion_start)
+            AND (' . $alias . '.promotion_end IS NULL OR CURDATE() <= ' . $alias . '.promotion_end)
         THEN ' . $alias . '.promotion_price
         ELSE ' . $alias . '.price
     END';
@@ -975,10 +1005,9 @@ function getShopProductsListing(PDO $pdo, string $langCode, array $options = [])
             WHERE pv_promo.id_product = p.id_product
               AND pv_promo.status = 1
               AND pv_promo.promotion_price IS NOT NULL
-              AND pv_promo.promotion_start IS NOT NULL
-              AND pv_promo.promotion_end IS NOT NULL
-              AND CURDATE() >= pv_promo.promotion_start
-              AND CURDATE() <= pv_promo.promotion_end
+              AND pv_promo.promotion_price > 0
+              AND (pv_promo.promotion_start IS NULL OR CURDATE() >= pv_promo.promotion_start)
+              AND (pv_promo.promotion_end IS NULL OR CURDATE() <= pv_promo.promotion_end)
         )';
     }
 

@@ -16,7 +16,7 @@ $sectionClass = $isPromoSection ? 'home-products--promo' : 'home-products--new';
 $viewAllUrl = $isPromoSection ? pageUrl('promotions.php') : pageUrl('shop.php');
 ?>
 
-<section class="home-section home-products <?= e($sectionClass) ?>" aria-labelledby="<?= e($sectionId) ?>">
+<section class="home-section home-products <?= e($sectionClass) ?>"<?= !$isPromoSection ? ' id="nouveautes"' : '' ?> aria-labelledby="<?= e($sectionId) ?>">
     <div class="container">
         <div class="section-header">
             <h2 class="section-title" id="<?= e($sectionId) ?>"><?= e($sectionTitle) ?></h2>
@@ -28,6 +28,13 @@ $viewAllUrl = $isPromoSection ? pageUrl('promotions.php') : pageUrl('shop.php');
             <?php foreach ($products as $product) : ?>
                 <?php
                 $productCardPromo = $isPromoSection;
+                $variantId = (int) ($product['id_variant'] ?? 0);
+                $cardImages = [];
+                if ($isPromoSection && isset($promoImages)) {
+                    $cardImages = $promoImages[$variantId] ?? [];
+                } elseif (!$isPromoSection && isset($newArrivalImages)) {
+                    $cardImages = $newArrivalImages[$variantId] ?? [];
+                }
                 include __DIR__ . '/../product-card.php';
                 ?>
             <?php endforeach; ?>

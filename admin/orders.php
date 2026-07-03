@@ -8,6 +8,17 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+$toastType = null;
+$toastMsg  = null;
+
+if (isset($_GET['deleted']) && $_GET['deleted'] === '1') {
+    $toastType = 'success';
+    $toastMsg  = 'Commande supprimée avec succès.';
+} elseif (isset($_GET['error']) && $_GET['error'] === '1') {
+    $toastType = 'error';
+    $toastMsg  = 'Impossible de supprimer la commande.';
+}
+
 $sql = "
 SELECT
     id_order,
@@ -24,6 +35,27 @@ ORDER BY id_order DESC
 
 $stmt   = $pdo->query($sql);
 $orders = $stmt->fetchAll();
+
+$orderItems = [];
+if (!empty($orders)) {
+    $ids = array_column($orders, 'id_order');
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $itemStmt = $pdo->prepare("
+        SELECT oi.id_order, oi.quantity, oi.size, oi.price,
+               pt.name AS product_name, pv.color_name
+        FROM order_items oi
+        INNER JOIN product_variants pv ON oi.id_variant = pv.id_variant
+        INNER JOIN products p ON pv.id_product = p.id_product
+        INNER JOIN product_translations pt ON p.id_product = pt.id_product
+        INNER JOIN languages l ON pt.id_language = l.id_language
+        WHERE oi.id_order IN ($placeholders)
+        AND l.code = 'fr'
+    ");
+    $itemStmt->execute($ids);
+    foreach ($itemStmt as $item) {
+        $orderItems[(int)$item['id_order']][] = $item;
+    }
+}
 
 include 'includes/header.php';
 ?>
@@ -81,7 +113,7 @@ include 'includes/header.php';
                     <th>Total</th>
                     <th>Statut</th>
                     <th>Date</th>
-                    <th class="text-center" style="width:120px;">Actions</th>
+                    <th class="text-center" style="width:150px;">Actions</th>
                 </tr>
             </thead>
             <tbody id="orders-tbody">
@@ -106,6 +138,49 @@ include 'includes/header.php';
                         };
                         $client = htmlspecialchars(($order['customer_name'] ?? '') . ' ' . ($order['customer_lastname'] ?? ''));
                         $num    = htmlspecialchars($order['order_number'] ?? '');
+
+                        $customerPhoneNorm = preg_replace('/\D+/', '', trim($order['telephone'] ?? ''));
+                        $whatsappMsg = '';
+                        $whatsappUrl = '';
+                        $whatsappDisabled = false;
+                        if ($customerPhoneNorm !== '') {
+                            $items = $orderItems[(int)$order['id_order']] ?? [];
+                            $totalFmt = number_format((float)($order['total'] ?? 0), 2, ',', ' ') . ' €';
+                            $msgLines = [
+                                'Bonjour ' . ($order['customer_name'] ?? '') . ' 👋',
+                                '',
+                                'Nous avons bien reçu votre commande chez AREACH 🤍',
+                                '',
+                                '🧾 Commande : #' . $num,
+                                '',
+                                '📦 Détails de votre commande :',
+                                '',
+                            ];
+                            foreach ($items as $item) {
+                                $line = '- ' . ($item['product_name'] ?? 'Produit');
+                                $line .= "\n  Quantité : " . (int)($item['quantity'] ?? 1);
+                                if (!empty($item['size'])) {
+                                    $line .= "\n  Taille : " . $item['size'];
+                                }
+                                if (!empty($item['color_name'])) {
+                                    $line .= "\n  Couleur : " . $item['color_name'];
+                                }
+                                $line .= "\n  Prix : " . number_format((float)($item['price'] ?? 0), 2, ',', ' ') . ' €';
+                                $msgLines[] = $line;
+                                $msgLines[] = '';
+                            }
+                            $msgLines[] = '💰 Total : ' . $totalFmt;
+                            $msgLines[] = '';
+                            $msgLines[] = 'Votre commande est bien enregistrée dans notre système.';
+                            $msgLines[] = 'Nous vous tiendrons informé(e) de son avancement.';
+                            $msgLines[] = '';
+                            $msgLines[] = 'Merci pour votre confiance 🤍';
+                            $msgLines[] = 'AREACH';
+                            $whatsappMsg = implode("\n", $msgLines);
+                            $whatsappUrl = 'https://web.whatsapp.com/send?phone=' . $customerPhoneNorm . '&text=' . rawurlencode($whatsappMsg);
+                        } else {
+                            $whatsappDisabled = true;
+                        }
                     ?>
                     <tr data-num="<?= strtolower($num) ?>"
                         data-client="<?= strtolower($client) ?>"
@@ -149,11 +224,31 @@ include 'includes/header.php';
                                data-bs-toggle="tooltip" title="Changer le statut">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </a>
+                            <?php if ($whatsappDisabled): ?>
+                            <span class="btn btn-sm btn-action whatsapp me-1 opacity-50"
+                                  data-bs-toggle="tooltip" title="Téléphone client manquant"
+                                  style="cursor:not-allowed;">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </span>
+                            <?php else: ?>
+                            <a href="<?= htmlspecialchars($whatsappUrl, ENT_QUOTES, 'UTF-8') ?>"
+                               class="btn btn-sm btn-action whatsapp me-1"
+                               data-bs-toggle="tooltip" title="Envoyer les détails via WhatsApp"
+                               target="_blank" rel="noopener noreferrer">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </a>
+                            <?php endif; ?>
                             <button type="button"
                                     class="btn btn-sm btn-action print"
                                     data-bs-toggle="tooltip" title="Imprimer"
                                     onclick="window.open('crud/orders/details.php?id=<?= (int)$order['id_order'] ?>&print=1','_blank')">
                                 <i class="fa-solid fa-print"></i>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-action delete"
+                                    data-bs-toggle="tooltip" title="Supprimer"
+                                    data-order-id="<?= (int)$order['id_order'] ?>">
+                                <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </td>
 
@@ -170,6 +265,37 @@ include 'includes/header.php';
         <div class="pagination-controls" id="pagination-controls"></div>
     </div>
 
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade modal-delete" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-trash-can me-2"></i>
+                    Supprimer la commande
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="modal-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <p class="mb-0 fw-medium">Êtes-vous sûr de vouloir supprimer définitivement cette commande ?</p>
+                <p class="text-muted small mb-0">Cette action est irréversible.</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4 gap-3">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Annuler</button>
+                <form method="POST" action="crud/orders/delete.php" id="deleteForm" style="display:inline;">
+                    <input type="hidden" name="id_order" id="deleteOrderId" value="">
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fa-solid fa-trash-can me-1"></i> Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Toast Container -->
@@ -322,6 +448,23 @@ include 'includes/header.php';
         msg.textContent = message;
         var toast = bootstrap.Toast.getInstance(toastEl) || new bootstrap.Toast(toastEl, { delay: 3000 });
         toast.show();
+    }
+
+    // Delete modal trigger
+    tbody.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-action.delete');
+        if (!btn) return;
+        var orderId = btn.getAttribute('data-order-id');
+        document.getElementById('deleteOrderId').value = orderId;
+        var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    });
+
+    // Toast on page load from redirect
+    var toastType = <?= json_encode($toastType) ?>;
+    var toastMsg  = <?= json_encode($toastMsg) ?>;
+    if (toastType && toastMsg) {
+        setTimeout(function () { showToast(toastType, toastMsg); }, 300);
     }
 })();
 </script>

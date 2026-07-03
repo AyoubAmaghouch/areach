@@ -20,7 +20,6 @@ function renderLayoutStart(string $pageTitle, string $metaDescription = ''): voi
     $metaDescription = $metaDescription ?: ($settings['store_name'] ?: 'AREACH');
 
     include __DIR__ . '/header.php';
-    include __DIR__ . '/topbar.php';
     include __DIR__ . '/navbar.php';
 
     echo '<main id="main-content" class="main-content">';

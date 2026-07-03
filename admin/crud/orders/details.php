@@ -94,6 +94,40 @@ if ($isPrintMode): ?>
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <?php
+        $detailsPhoneNorm = preg_replace('/\D+/', '', trim($order['telephone'] ?? ''));
+        $detailsWaUrl = '';
+        $detailsWaAvailable = $currentStatus === 'Confirmée' && $detailsPhoneNorm !== '';
+        if ($detailsWaAvailable) {
+            $detailsWaTotal = number_format((float)($order['total'] ?? 0), 2, ',', ' ') . ' €';
+            $detailsWaOrderNum = htmlspecialchars($order['order_number'] ?? '');
+            $detailsWaMsgLines = [
+                'Bonjour ' . ($order['customer_name'] ?? '') . ' 👋',
+                '',
+                'Bonne nouvelle 🎉',
+                '',
+                'Votre commande ' . $detailsWaOrderNum . ' a bien été confirmée par AREACH.',
+                '',
+                '🛍️ Votre commande est maintenant en cours de préparation.',
+                '',
+                '💰 Total : ' . $detailsWaTotal,
+                '',
+                "Nous vous tiendrons informé(e) dès qu'elle sera prête pour la prochaine étape.",
+                '',
+                'Merci pour votre confiance 🤍',
+                'AREACH',
+            ];
+            $detailsWaMsg = implode("\n", $detailsWaMsgLines);
+            $detailsWaUrl = 'https://web.whatsapp.com/send?phone=' . $detailsPhoneNorm . '&text=' . rawurlencode($detailsWaMsg);
+        }
+        ?>
+        <?php if ($detailsWaAvailable): ?>
+        <a href="<?= htmlspecialchars($detailsWaUrl, ENT_QUOTES, 'UTF-8') ?>"
+           target="_blank" rel="noopener noreferrer"
+           class="btn btn-outline-success btn-sm">
+            <i class="fa-brands fa-whatsapp me-1"></i> Informer via WhatsApp
+        </a>
+        <?php endif; ?>
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-print me-1"></i> Imprimer
         </button>

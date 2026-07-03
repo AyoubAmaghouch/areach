@@ -12,12 +12,29 @@ $discountLabel = getProductDiscountLabel($product);
 $showSalePrice = ($productCardPromo ?? false) || $prices['on_sale'];
 $productLink = productUrl((int) $product['id_product']);
 $cartActionUrl = pageUrl('product.php?id=' . (int) $product['id_product']);
+$hasSlideshow = !empty($cardImages) && count($cardImages) > 1;
 ?>
 
-<article class="product-card<?= ($productCardPromo ?? false) ? ' product-card--promo' : '' ?>">
+<article class="product-card<?= ($productCardPromo ?? false) ? ' product-card--promo' : '' ?><?= $hasSlideshow ? ' product-card--slideshow' : '' ?>">
     <div class="product-card__media">
         <a href="<?= $productLink ?>" class="product-card__link" aria-label="<?= e($product['product_name']) ?>">
-            <?php if ($productImage !== '') : ?>
+            <?php if ($hasSlideshow) : ?>
+                <div class="product-card__slideshow" data-interval="3000">
+                    <?php foreach ($cardImages as $i => $imgFile) : ?>
+                        <?php $imgUrl = imagePath('products', $imgFile); ?>
+                        <?php if ($imgUrl !== '') : ?>
+                            <img
+                                src="<?= $imgUrl ?>"
+                                alt="<?= e($product['product_name']) ?>"
+                                class="product-card__slide<?= $i === 0 ? ' is-active' : '' ?>"
+                                width="300"
+                                height="400"
+                                loading="lazy"
+                            >
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php elseif ($productImage !== '') : ?>
                 <img
                     src="<?= $productImage ?>"
                     alt="<?= e($product['product_name']) ?>"
@@ -40,10 +57,6 @@ $cartActionUrl = pageUrl('product.php?id=' . (int) $product['id_product']);
                 <span class="product-card__overlay-text"><?= t('product_view') ?></span>
             </span>
         </a>
-
-        <button type="button" class="product-card__wishlist" aria-label="<?= t('product_wishlist') ?>">
-            <i class="fa-regular fa-heart" aria-hidden="true"></i>
-        </button>
     </div>
 
     <div class="product-card__body">

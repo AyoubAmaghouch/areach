@@ -185,6 +185,9 @@ if (!empty($product['id_category'])) {
     );
 }
 
+$relatedVariantIds = array_column($relatedProducts, 'id_variant');
+$relatedImages = getProductImagesForVariants($pdo, $relatedVariantIds);
+
 $pageTitle = ($settings['store_name'] ?: 'AREACH') . ' — ' . ($product['product_name'] ?? 'Produit');
 $metaDescription = $product['product_name'] ?? 'Produit';
 
@@ -204,20 +207,22 @@ include 'includes/navbar.php';
     <section class="page-section">
         <div class="container product-detail">
             <div class="product-detail__gallery" id="product-gallery">
-                <?php if ($selectedPrimaryImage !== '') : ?>
-                    <img src="<?= e(imagePath('products', $selectedPrimaryImage)) ?>" alt="<?= e($product['product_name'] ?? '') ?>" class="product-detail__image" id="product-main-image">
-                <?php else : ?>
-                    <div class="product-detail__placeholder" id="product-image-placeholder" aria-hidden="true">
-                        <i class="fa-solid fa-shirt"></i>
-                    </div>
-                <?php endif; ?>
-                <div class="product-detail__thumbs" id="product-image-thumbs" <?= empty($selectedImages) ? 'hidden' : '' ?>>
-                    <?php if (!empty($selectedImages)) : ?>
-                        <?php foreach ($selectedImages as $imageData) : ?>
-                            <img src="<?= e(imagePath('products', (string) ($imageData['image'] ?? ''))) ?>" alt="" class="product-detail__thumb">
-                        <?php endforeach; ?>
+                <div class="product-gallery__main" id="product-gallery-main">
+                    <?php if ($selectedPrimaryImage !== '') : ?>
+                        <img src="<?= e(imagePath('products', $selectedPrimaryImage)) ?>" alt="<?= e($product['product_name'] ?? '') ?>" class="product-detail__image" id="product-main-image">
+                    <?php else : ?>
+                        <div class="product-detail__placeholder" id="product-image-placeholder" aria-hidden="true">
+                            <i class="fa-solid fa-shirt"></i>
+                        </div>
                     <?php endif; ?>
+                    <button class="product-gallery__arrow product-gallery__arrow--prev" id="gallery-arrow-prev" type="button" aria-label="Image précédente">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A2412" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <button class="product-gallery__arrow product-gallery__arrow--next" id="gallery-arrow-next" type="button" aria-label="Image suivante">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A2412" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
                 </div>
+                <div class="product-gallery__thumbs" id="product-image-thumbs" <?= empty($selectedImages) ? 'hidden' : '' ?>></div>
             </div>
 
             <div class="product-detail__info">
@@ -287,7 +292,13 @@ include 'includes/navbar.php';
                 <h2 class="section-title">Produits similaires</h2>
                 <div class="product-grid">
                     <?php foreach ($relatedProducts as $relatedProduct) : ?>
-                        <?php $product = $relatedProduct; include __DIR__ . '/includes/product-card.php'; ?>
+                        <?php
+                        $product = $relatedProduct;
+                        $productCardPromo = false;
+                        $variantId = (int) ($product['id_variant'] ?? 0);
+                        $cardImages = $relatedImages[$variantId] ?? [];
+                        include __DIR__ . '/includes/product-card.php';
+                        ?>
                     <?php endforeach; ?>
                 </div>
             </div>

@@ -19,7 +19,7 @@ declare(strict_types=1);
                             <a href="shop.php" class="btn btn--accent hero-slide__btn">
                                 Découvrir la collection
                             </a>
-                            <a href="shop.php" class="btn btn--outline hero-slide__btn-secondary">
+                            <a href="#nouveautes" class="btn btn--outline hero-slide__btn-secondary">
                                 Voir les nouveautés
                             </a>
                         </div>
@@ -52,7 +52,7 @@ declare(strict_types=1);
                             <a href="shop.php" class="btn btn--accent hero-slide__btn">
                                 Acheter maintenant
                             </a>
-                            <a href="shop.php" class="btn btn--outline hero-slide__btn-secondary">
+                            <a href="#nouveautes" class="btn btn--outline hero-slide__btn-secondary">
                                 Voir les nouveautés
                             </a>
                         </div>
@@ -76,22 +76,6 @@ declare(strict_types=1);
         </div>
 
         <div class="swiper-pagination hero-swiper-pagination"></div>
-
-        <button
-            type="button"
-            class="swiper-button-prev hero-swiper-button hero-swiper-button--prev"
-            aria-label="Bannière précédente"
-        >
-            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-        </button>
-
-        <button
-            type="button"
-            class="swiper-button-next hero-swiper-button hero-swiper-button--next"
-            aria-label="Bannière suivante"
-        >
-            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-        </button>
     </div>
 </section>
 
@@ -111,10 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
         pagination: {
             el: '.hero-swiper-pagination',
             clickable: true,
-        },
-        navigation: {
-            nextEl: '.hero-swiper-button--next',
-            prevEl: '.hero-swiper-button--prev',
         },
         speed: 800,
         grabCursor: true
