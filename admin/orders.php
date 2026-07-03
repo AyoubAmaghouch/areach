@@ -16,7 +16,7 @@ SELECT
     customer_lastname,
     telephone,
     total,
-    status,
+    COALESCE(NULLIF(status, ''), 'En attente') AS status,
     created_at
 FROM orders
 ORDER BY id_order DESC
@@ -72,7 +72,7 @@ include 'includes/header.php';
     </div>
 
     <div class="table-responsive">
-        <table class="admin-table" id="orders-table">
+        <table class="table" id="orders-table">
             <thead>
                 <tr>
                     <th>N° Commande</th>
@@ -122,7 +122,16 @@ include 'includes/header.php';
                         <td class="fw-semibold"><?= number_format((float)($order['total'] ?? 0), 2) ?> €</td>
 
                         <td>
-                            <span class="badge-status <?= $badgeClass ?>"><?= $status ?></span>
+                            <select class="form-select form-select-sm order-status-select"
+                                    data-order-id="<?= (int)$order['id_order'] ?>"
+                                    style="width:auto;min-width:120px;border-radius:6px;">
+                                <option value="En attente" <?= $status === 'En attente' ? 'selected' : '' ?>>En attente</option>
+                                <option value="Confirmée" <?= $status === 'Confirmée' ? 'selected' : '' ?>>Confirmée</option>
+                                <option value="En préparation" <?= $status === 'En préparation' ? 'selected' : '' ?>>En préparation</option>
+                                <option value="Expédiée" <?= $status === 'Expédiée' ? 'selected' : '' ?>>Expédiée</option>
+                                <option value="Livrée" <?= $status === 'Livrée' ? 'selected' : '' ?>>Livrée</option>
+                                <option value="Annulée" <?= $status === 'Annulée' ? 'selected' : '' ?>>Annulée</option>
+                            </select>
                         </td>
 
                         <td class="text-muted">
@@ -130,24 +139,22 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <div class="table-actions justify-content-center">
-                                <a href="crud/orders/details.php?id=<?= (int)$order['id_order'] ?>"
-                                   class="btn-action view"
-                                   data-bs-toggle="tooltip" title="Voir les détails">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                                <a href="crud/orders/update-status.php?id=<?= (int)$order['id_order'] ?>"
-                                   class="btn-action edit"
-                                   data-bs-toggle="tooltip" title="Changer le statut">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </a>
-                                <button type="button"
-                                        class="btn-action print"
-                                        data-bs-toggle="tooltip" title="Imprimer"
-                                        onclick="window.open('crud/orders/details.php?id=<?= (int)$order['id_order'] ?>&print=1','_blank')">
-                                    <i class="fa-solid fa-print"></i>
-                                </button>
-                            </div>
+                            <a href="crud/orders/details.php?id=<?= (int)$order['id_order'] ?>"
+                               class="btn btn-sm btn-action view me-1"
+                               data-bs-toggle="tooltip" title="Voir les détails">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a href="crud/orders/update-status.php?id=<?= (int)$order['id_order'] ?>"
+                               class="btn btn-sm btn-action edit me-1"
+                               data-bs-toggle="tooltip" title="Changer le statut">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-sm btn-action print"
+                                    data-bs-toggle="tooltip" title="Imprimer"
+                                    onclick="window.open('crud/orders/details.php?id=<?= (int)$order['id_order'] ?>&print=1','_blank')">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
                         </td>
 
                     </tr>
@@ -165,6 +172,18 @@ include 'includes/header.php';
 
 </div>
 
+<!-- Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+    <div id="orderToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fa-solid fa-circle-check text-success me-2"></i>
+            <strong class="me-auto" id="toastTitle">Succès</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fermer"></button>
+        </div>
+        <div class="toast-body" id="toastMessage"></div>
+    </div>
+</div>
+
 <script>
 (function () {
     const perPage  = 20;
@@ -174,6 +193,7 @@ include 'includes/header.php';
     const statusFilter = document.getElementById('status-filter');
     const info     = document.getElementById('pagination-info');
     const controls = document.getElementById('pagination-controls');
+    const toastEl  = document.getElementById('orderToast');
 
     function getRows() {
         return Array.from(tbody.querySelectorAll('tr[data-num]'));
@@ -238,6 +258,71 @@ include 'includes/header.php';
         a.download = 'commandes.csv';
         a.click();
     };
+
+    // Inline status update
+    document.addEventListener('DOMContentLoaded', function () {
+        var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+
+        tbody.addEventListener('change', function (e) {
+            var select = e.target.closest('.order-status-select');
+            if (!select) return;
+
+            var orderId = select.getAttribute('data-order-id');
+            var newStatus = select.value;
+            var previousStatus = select.dataset.previous;
+
+            if (!previousStatus || previousStatus === newStatus) return;
+
+            var row = select.closest('tr');
+
+            fetch('crud/orders/update-status.php?id=' + orderId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: 'status=' + encodeURIComponent(newStatus)
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    showToast('success', '\u2713 Statut mis \u00e0 jour.');
+                    row.dataset.status = newStatus.toLowerCase();
+                    delete select.dataset.previous;
+                } else {
+                    select.value = previousStatus;
+                    showToast('error', data.message || 'Erreur lors de la mise \u00e0 jour.');
+                }
+            })
+            .catch(function () {
+                select.value = previousStatus;
+                showToast('error', 'Erreur lors de la mise \u00e0 jour.');
+            });
+        });
+
+        tbody.addEventListener('focusin', function (e) {
+            var select = e.target.closest('.order-status-select');
+            if (select) {
+                select.dataset.previous = select.value;
+            }
+        });
+    });
+
+    function showToast(type, message) {
+        var icon = toastEl.querySelector('.toast-header i');
+        var title = document.getElementById('toastTitle');
+        var msg = document.getElementById('toastMessage');
+        if (type === 'success') {
+            icon.className = 'fa-solid fa-circle-check text-success me-2';
+            title.textContent = 'Succ\u00e8s';
+        } else {
+            icon.className = 'fa-solid fa-circle-exclamation text-danger me-2';
+            title.textContent = 'Erreur';
+        }
+        msg.textContent = message;
+        var toast = bootstrap.Toast.getInstance(toastEl) || new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+    }
 })();
 </script>
 

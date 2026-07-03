@@ -8,13 +8,24 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+function redirectCategoryUpdate(string $message, string $type = 'success'): never
+{
+    $_SESSION['category_flash'] = ['message' => $message, 'type' => $type];
+    header("Location: ../../categories.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: ../../categories.php");
     exit;
 }
 
-$id = (int) $_POST['id'];
-$name = trim($_POST['name']);
+$id = (int) ($_POST['id'] ?? 0);
+$name = trim((string) ($_POST['name'] ?? ''));
+
+if ($id < 1 || $name === '') {
+    redirectCategoryUpdate("Veuillez remplir les champs obligatoires.", 'error');
+}
 
 // تحديث الاسم
 $stmt = $pdo->prepare("
@@ -27,6 +38,9 @@ $stmt->execute([$name, $id]);
 
 // تحديث الصورة إذا تم اختيار صورة جديدة
 if (!empty($_FILES['image']['name'])) {
+    if (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        redirectCategoryUpdate("L'image n'a pas pu etre telechargee.", 'error');
+    }
 
     // جلب الصورة القديمة
     $stmt = $pdo->prepare("
@@ -51,10 +65,17 @@ if (!empty($_FILES['image']['name'])) {
     // رفع الصورة الجديدة
     $imageName = time() . "_" . basename($_FILES['image']['name']);
 
-    move_uploaded_file(
+    $directory = __DIR__ . '/../../../assets/uploads/categories';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        redirectCategoryUpdate("Le dossier des categories est indisponible.", 'error');
+    }
+
+    if (!move_uploaded_file(
         $_FILES['image']['tmp_name'],
-        "../../../assets/uploads/categories/" . $imageName
-    );
+        $directory . "/" . $imageName
+    )) {
+        redirectCategoryUpdate("L'image n'a pas pu etre enregistree.", 'error');
+    }
 
     // تحديث قاعدة البيانات
     $stmt = $pdo->prepare("
@@ -66,5 +87,4 @@ if (!empty($_FILES['image']['name'])) {
     $stmt->execute([$imageName, $id]);
 }
 
-header("Location: ../../categories.php");
-exit;
+redirectCategoryUpdate("Categorie modifiee avec succes.");

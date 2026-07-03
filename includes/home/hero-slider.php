@@ -19,7 +19,7 @@ declare(strict_types=1);
                             <a href="shop.php" class="btn btn--accent hero-slide__btn">
                                 Découvrir la collection
                             </a>
-                            <a href="nouveautes.php" class="btn btn--outline hero-slide__btn-secondary">
+                            <a href="shop.php" class="btn btn--outline hero-slide__btn-secondary">
                                 Voir les nouveautés
                             </a>
                         </div>
@@ -52,7 +52,7 @@ declare(strict_types=1);
                             <a href="shop.php" class="btn btn--accent hero-slide__btn">
                                 Acheter maintenant
                             </a>
-                            <a href="nouveautes.php" class="btn btn--outline hero-slide__btn-secondary">
+                            <a href="shop.php" class="btn btn--outline hero-slide__btn-secondary">
                                 Voir les nouveautés
                             </a>
                         </div>

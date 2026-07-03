@@ -148,7 +148,7 @@ include 'includes/header.php';
         </a>
     </div>
     <div class="table-responsive">
-        <table class="admin-table">
+        <table class="table">
             <thead>
                 <tr>
                     <th>N° Commande</th>
@@ -188,7 +188,7 @@ include 'includes/header.php';
                         <td class="text-muted"><?= htmlspecialchars(substr($order['created_at'] ?? '', 0, 10)) ?></td>
                         <td class="text-center">
                             <a href="crud/orders/details.php?id=<?= (int)$order['id_order'] ?>"
-                               class="btn-action view"
+                               class="btn btn-sm btn-action view"
                                data-bs-toggle="tooltip" title="Voir">
                                 <i class="fa-solid fa-eye"></i>
                             </a>

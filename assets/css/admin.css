@@ -426,7 +426,6 @@ body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
 }
 
 .admin-table-header {
@@ -498,7 +497,7 @@ body {
   white-space: nowrap;
   position: sticky;
   top: var(--topbar-height);
-  z-index: 10;
+  z-index: 1;
 }
 
 .admin-table tbody tr {
@@ -513,6 +512,11 @@ body {
   padding: 10px 16px;
   vertical-align: middle;
   color: var(--text-primary);
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-table td .text-muted { font-size: 0.78rem; }
@@ -544,6 +548,7 @@ body {
 
 .btn-action {
   width: 28px; height: 28px;
+  min-width: 28px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   background: #fff;
@@ -552,6 +557,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   cursor: pointer;
   text-decoration: none;
   transition: var(--transition);
@@ -564,6 +570,20 @@ body {
 .btn-action.variants:hover { background: #F3E8FF; border-color: var(--color-purple); color: var(--color-purple); }
 .btn-action.print:hover  { background: #DCFCE7; border-color: var(--color-success); color: var(--color-success); }
 .btn-action.toggle:hover { background: #FEF3C7; border-color: var(--color-warning); color: var(--color-warning); }
+
+/* Button Groups */
+.btn-group > .btn-action {
+  border-radius: 0;
+}
+.btn-group > .btn-action:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+.btn-group > .btn-action:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.btn-group > .btn-action:only-child {
+  border-radius: var(--radius-sm);
+}
 
 /* ============================================================
    BADGES

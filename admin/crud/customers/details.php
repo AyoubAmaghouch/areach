@@ -18,14 +18,14 @@ if (!$customer) {
     die("Client introuvable.");
 }
 
-// Fetch orders matching this customer's name and last name
+// Fetch orders linked to this customer.
 $stmt = $pdo->prepare("
-    SELECT id_order, order_number, total, status, created_at
+    SELECT id_order, order_number, total, COALESCE(NULLIF(status, ''), 'En attente') AS status, created_at
     FROM orders
-    WHERE customer_name = ? AND customer_lastname = ?
+    WHERE id_customer = ? OR email = ?
     ORDER BY id_order DESC
 ");
-$stmt->execute([$customer['nom'], $customer['prenom']]);
+$stmt->execute([$id, $customer['email'] ?? '']);
 $orders = $stmt->fetchAll();
 
 $initials = strtoupper(substr($customer['nom'] ?? 'C', 0, 1) . substr($customer['prenom'] ?? '', 0, 1));
@@ -107,7 +107,7 @@ include '../../includes/header.php';
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="admin-table">
+                <table class="table table-hover align-middle">
                     <thead>
                         <tr>
                             <th>N° Commande</th>
@@ -146,7 +146,7 @@ include '../../includes/header.php';
                                 <td class="text-muted"><?= htmlspecialchars(substr($order['created_at'] ?? '', 0, 10)) ?></td>
                                 <td class="text-center">
                                     <a href="../orders/details.php?id=<?= (int)$order['id_order'] ?>"
-                                       class="btn-action view"
+                                       class="btn btn-sm btn-action view"
                                        data-bs-toggle="tooltip" title="Voir la commande">
                                         <i class="fa-solid fa-eye"></i>
                                     </a>

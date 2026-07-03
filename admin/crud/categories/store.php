@@ -8,30 +8,47 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+function redirectCategoryStore(string $message, string $type = 'success'): never
+{
+    $_SESSION['category_flash'] = ['message' => $message, 'type' => $type];
+    header("Location: ../../categories.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: ../../categories.php");
     exit;
 }
 
-$name = trim($_POST['name']);
+$name = trim((string) ($_POST['name'] ?? ''));
 
 if (empty($name)) {
-    die("Le nom est obligatoire.");
+    redirectCategoryStore("Le nom est obligatoire.", 'error');
 }
 
 // Upload image
 $imageName = null;
 
 if (!empty($_FILES['image']['name'])) {
+    if (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        redirectCategoryStore("L'image n'a pas pu etre telechargee.", 'error');
+    }
 
     $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
 
     $imageName = time() . "." . $extension;
 
-    move_uploaded_file(
+    $directory = __DIR__ . '/../../../assets/uploads/categories';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        redirectCategoryStore("Le dossier des categories est indisponible.", 'error');
+    }
+
+    if (!move_uploaded_file(
         $_FILES['image']['tmp_name'],
-        "../../../assets/uploads/categories/" . $imageName
-    );
+        $directory . "/" . $imageName
+    )) {
+        redirectCategoryStore("L'image n'a pas pu etre enregistree.", 'error');
+    }
 }
 
 // Ajouter catégorie
@@ -55,6 +72,10 @@ $stmt->execute();
 
 $language = $stmt->fetch();
 
+if (!$language) {
+    redirectCategoryStore("Langue par defaut introuvable.", 'error');
+}
+
 // Ajouter la traduction française
 $stmt = $pdo->prepare("
     INSERT INTO category_translations
@@ -68,5 +89,4 @@ $stmt->execute([
     $name
 ]);
 
-header("Location: ../../categories.php");
-exit;
+redirectCategoryStore("Categorie enregistree avec succes.");

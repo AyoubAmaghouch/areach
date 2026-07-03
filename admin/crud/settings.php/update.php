@@ -8,21 +8,28 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+function redirectSettings(string $message, string $type = 'success'): never
+{
+    $_SESSION['settings_flash'] = ['message' => $message, 'type' => $type];
+    header("Location: ../../settings.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: ../../settings.php");
     exit;
 }
 
-$store_name = trim($_POST['store_name']);
-$email = trim($_POST['email']);
-$telephone = trim($_POST['telephone']);
-$whatsapp = trim($_POST['whatsapp']);
-$facebook = trim($_POST['facebook']);
-$instagram = trim($_POST['instagram']);
-$tiktok = trim($_POST['tiktok']);
-$address = trim($_POST['address']);
-$delivery_price = (float)$_POST['delivery_price'];
-$free_delivery = (float)$_POST['free_delivery'];
+$store_name = trim((string) ($_POST['store_name'] ?? ''));
+$email = trim((string) ($_POST['email'] ?? ''));
+$telephone = trim((string) ($_POST['telephone'] ?? ''));
+$whatsapp = trim((string) ($_POST['whatsapp'] ?? ''));
+$facebook = trim((string) ($_POST['facebook'] ?? ''));
+$instagram = trim((string) ($_POST['instagram'] ?? ''));
+$tiktok = trim((string) ($_POST['tiktok'] ?? ''));
+$address = trim((string) ($_POST['address'] ?? ''));
+$delivery_price = (float) ($_POST['delivery_price'] ?? 0);
+$free_delivery = (float) ($_POST['free_delivery'] ?? 0);
 
 /* Vérifier si une ligne existe */
 
@@ -34,6 +41,9 @@ $logo = $settings['logo'] ?? "";
 /* Upload Logo */
 
 if (!empty($_FILES['logo']['name'])) {
+    if (($_FILES['logo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        redirectSettings("Le logo n'a pas pu etre telecharge.", 'error');
+    }
 
     if (!empty($logo)) {
 
@@ -46,10 +56,17 @@ if (!empty($_FILES['logo']['name'])) {
 
     $logo = time() . "_" . basename($_FILES['logo']['name']);
 
-    move_uploaded_file(
+    $directory = __DIR__ . '/../../../assets/uploads/settings';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        redirectSettings("Le dossier des parametres est indisponible.", 'error');
+    }
+
+    if (!move_uploaded_file(
         $_FILES['logo']['tmp_name'],
-        "../../../assets/uploads/settings/" . $logo
-    );
+        $directory . "/" . $logo
+    )) {
+        redirectSettings("Le logo n'a pas pu etre enregistre.", 'error');
+    }
 }
 
 /* UPDATE */
@@ -132,5 +149,4 @@ if ($settings) {
 
 }
 
-header("Location: ../../settings.php");
-exit;
+redirectSettings("Parametres enregistres avec succes.");

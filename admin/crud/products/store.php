@@ -46,8 +46,8 @@ function slugify(string $value): string
 
 function createDirectory(string $path): void
 {
-    if (!is_dir($path)) {
-        mkdir($path, 0777, true);
+    if (!is_dir($path) && !mkdir($path, 0777, true) && !is_dir($path)) {
+        throw new RuntimeException('Le dossier de tÃ©lÃ©chargement ne peut pas Ãªtre crÃ©Ã©.');
     }
 }
 
@@ -122,7 +122,9 @@ function saveUploadedImage(array $file, string $baseDirectory, string $prefix, b
     $baseName = slugify(pathinfo($validated['name'], PATHINFO_FILENAME));
     $targetName = $prefix . '-' . $baseName . '-' . uniqid('', true) . '.' . $validated['extension'];
     $targetPath = $baseDirectory . '/' . $targetName;
-    move_uploaded_file($validated['tmp_name'], $targetPath);
+    if (!move_uploaded_file($validated['tmp_name'], $targetPath)) {
+        throw new RuntimeException('Une image n\'a pas pu Ãªtre enregistrÃ©e.');
+    }
 
     return $targetName;
 }
@@ -209,7 +211,7 @@ try {
     $variantGroups = $_POST['variant_colors'] ?? [];
     $variantGroups = is_array($variantGroups) ? $variantGroups : [];
     $createdVariants = 0;
-    $imageStatement = $pdo->prepare('INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, 1)');
+    $imageStatement = $pdo->prepare('INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, ?)');
 
     if (!empty($variantGroups)) {
         foreach ($variantGroups as $groupIndex => $groupData) {
@@ -225,69 +227,76 @@ try {
                 $sizes = ['ONE SIZE'];
             }
 
+            $variantStock = 0;
             foreach ($sizes as $size) {
                 $stockValue = filter_var($sizeStocks[$size] ?? 0, FILTER_VALIDATE_INT);
                 $stockValue = $stockValue === false ? 0 : $stockValue;
+                $variantStock += max(0, $stockValue);
+            }
 
-                $variantStatement = $pdo->prepare('INSERT INTO product_variants (id_product, color_name, color_code, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 1)');
-                $variantStatement->execute([
-                    $productId,
-                    $colorName,
-                    null,
-                    number_format($price, 2, '.', ''),
-                    $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''),
-                    $discountPercentage,
-                    $stockValue,
-                ]);
-                $variantId = (int) $pdo->lastInsertId();
-                $createdVariants++;
+            $variantStatement = $pdo->prepare('INSERT INTO product_variants (id_product, color_name, color_code, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 1)');
+            $variantStatement->execute([
+                $productId,
+                $colorName,
+                null,
+                number_format($price, 2, '.', ''),
+                $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''),
+                $discountPercentage,
+                $variantStock,
+            ]);
+            $variantId = (int) $pdo->lastInsertId();
+            $createdVariants++;
 
-                if (columnExists($pdo, 'product_variants', 'low_stock_alert')) {
-                    $pdo->prepare('UPDATE product_variants SET low_stock_alert = ? WHERE id_variant = ?')->execute([$lowStockValue, $variantId]);
-                }
+            if (columnExists($pdo, 'product_variants', 'low_stock_alert')) {
+                $pdo->prepare('UPDATE product_variants SET low_stock_alert = ? WHERE id_variant = ?')->execute([$lowStockValue, $variantId]);
+            }
 
+            $sizeStatement = $pdo->prepare('INSERT INTO product_variant_sizes (id_variant, size) VALUES (?, ?)');
+            foreach ($sizes as $size) {
                 if ($size !== 'ONE SIZE') {
-                    $sizeStatement = $pdo->prepare('INSERT INTO product_variant_sizes (id_variant, size) VALUES (?, ?)');
                     $sizeStatement->execute([$variantId, $size]);
                 }
+            }
 
-                $variantFiles = $_FILES['variant_colors'] ?? [];
-                $groupFileEntry = $variantFiles['name'][$groupIndex] ?? [];
-                $mainImageFile = [
-                    'name' => $groupFileEntry['main_image'] ?? '',
-                    'tmp_name' => $variantFiles['tmp_name'][$groupIndex]['main_image'] ?? '',
-                    'size' => $variantFiles['size'][$groupIndex]['main_image'] ?? 0,
-                    'error' => $variantFiles['error'][$groupIndex]['main_image'] ?? UPLOAD_ERR_NO_FILE,
-                    'type' => $variantFiles['type'][$groupIndex]['main_image'] ?? '',
-                ];
+            $variantFiles = $_FILES['variant_colors'] ?? [];
+            $groupFileEntry = $variantFiles['name'][$groupIndex] ?? [];
+            $mainImageFile = [
+                'name' => $groupFileEntry['main_image'] ?? '',
+                'tmp_name' => $variantFiles['tmp_name'][$groupIndex]['main_image'] ?? '',
+                'size' => $variantFiles['size'][$groupIndex]['main_image'] ?? 0,
+                'error' => $variantFiles['error'][$groupIndex]['main_image'] ?? UPLOAD_ERR_NO_FILE,
+                'type' => $variantFiles['type'][$groupIndex]['main_image'] ?? '',
+            ];
 
-                $mainImageName = saveUploadedImage($mainImageFile, $baseImageDirectory, 'variant-main', false);
-                if ($mainImageName !== null) {
-                    $imageStatement->execute([$variantId, $mainImageName]);
-                }
+            $hasPrimaryImage = false;
+            $mainImageName = saveUploadedImage($mainImageFile, $baseImageDirectory, 'variant-main', false);
+            if ($mainImageName !== null) {
+                $imageStatement->execute([$variantId, $mainImageName, 1]);
+                $hasPrimaryImage = true;
+            }
 
-                $galleryFiles = [];
-                $galleryNames = $variantFiles['name'][$groupIndex]['gallery_images'] ?? [];
-                if (!empty($galleryNames) && is_array($galleryNames)) {
-                    foreach ($galleryNames as $galleryIndex => $galleryName) {
-                        if ($galleryName === '') {
-                            continue;
-                        }
-                        $galleryFiles[] = [
-                            'name' => $galleryName,
-                            'tmp_name' => $variantFiles['tmp_name'][$groupIndex]['gallery_images'][$galleryIndex] ?? '',
-                            'size' => $variantFiles['size'][$groupIndex]['gallery_images'][$galleryIndex] ?? 0,
-                            'error' => $variantFiles['error'][$groupIndex]['gallery_images'][$galleryIndex] ?? UPLOAD_ERR_NO_FILE,
-                            'type' => $variantFiles['type'][$groupIndex]['gallery_images'][$galleryIndex] ?? '',
-                        ];
+            $galleryFiles = [];
+            $galleryNames = $variantFiles['name'][$groupIndex]['gallery_images'] ?? [];
+            if (!empty($galleryNames) && is_array($galleryNames)) {
+                foreach ($galleryNames as $galleryIndex => $galleryName) {
+                    if ($galleryName === '') {
+                        continue;
                     }
+                    $galleryFiles[] = [
+                        'name' => $galleryName,
+                        'tmp_name' => $variantFiles['tmp_name'][$groupIndex]['gallery_images'][$galleryIndex] ?? '',
+                        'size' => $variantFiles['size'][$groupIndex]['gallery_images'][$galleryIndex] ?? 0,
+                        'error' => $variantFiles['error'][$groupIndex]['gallery_images'][$galleryIndex] ?? UPLOAD_ERR_NO_FILE,
+                        'type' => $variantFiles['type'][$groupIndex]['gallery_images'][$galleryIndex] ?? '',
+                    ];
                 }
+            }
 
-                foreach (array_slice($galleryFiles, 0, 5) as $galleryFile) {
-                    $galleryImageName = saveUploadedImage($galleryFile, $baseImageDirectory, 'variant-gallery', false);
-                    if ($galleryImageName !== null) {
-                        $imageStatement->execute([$variantId, $galleryImageName]);
-                    }
+            foreach (array_slice($galleryFiles, 0, 5) as $galleryFile) {
+                $galleryImageName = saveUploadedImage($galleryFile, $baseImageDirectory, 'variant-gallery', false);
+                if ($galleryImageName !== null) {
+                    $imageStatement->execute([$variantId, $galleryImageName, $hasPrimaryImage ? 0 : 1]);
+                    $hasPrimaryImage = true;
                 }
             }
         }
@@ -304,7 +313,7 @@ try {
 
         $mainImageName = saveUploadedImage($_FILES['main_image'] ?? [], $baseImageDirectory, 'main', false);
         if ($mainImageName !== null) {
-            $imageStatement->execute([$variantId, $mainImageName]);
+            $imageStatement->execute([$variantId, $mainImageName, 1]);
         }
 
         $galleryImages = [];
@@ -327,7 +336,8 @@ try {
             foreach ($galleryImages as $galleryFile) {
                 $galleryImageName = saveUploadedImage($galleryFile, $baseImageDirectory, 'gallery', false);
                 if ($galleryImageName !== null) {
-                    $imageStatement->execute([$variantId, $galleryImageName]);
+                    $imageStatement->execute([$variantId, $galleryImageName, $mainImageName === null ? 1 : 0]);
+                    $mainImageName ??= $galleryImageName;
                 }
             }
         }
@@ -356,9 +366,10 @@ try {
         $failedQuery = 'INSERT INTO product_variant_sizes (id_variant, size) VALUES (?, ?)';
         $failedParams = [$variantId ?? null, $size ?? null];
     } elseif (isset($imageStatement)) {
-        $failedQuery = 'INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, 1)';
-        $failedParams = [$variantId ?? null, $mainImageName ?? null];
+        $failedQuery = 'INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, ?)';
+        $failedParams = [$variantId ?? null, $mainImageName ?? null, 1];
     }
 
-    dumpQueryError($pdo, $failedQuery, $failedParams, $exception);
+    error_log($exception->getMessage() . ' | ' . $failedQuery . ' | ' . json_encode($failedParams));
+    redirectWithMessage('Le produit n\'a pas pu Ãªtre enregistrÃ©.', 'error');
 }

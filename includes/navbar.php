@@ -64,7 +64,6 @@ function isNavActive(string $page, string $currentPage): string
                 <li><a href="<?= pageUrl('index.php') ?>" class="navbar__link<?= isNavActive('index.php', $currentPage) ?>"><?= t('nav_home') ?></a></li>
                 <li><a href="<?= pageUrl('shop.php') ?>" class="navbar__link<?= isNavActive('shop.php', $currentPage) ?>"><?= t('nav_shop') ?></a></li>
                 <li><a href="<?= pageUrl('promotions.php') ?>" class="navbar__link<?= isNavActive('promotions.php', $currentPage) ?>"><?= t('nav_promotions') ?></a></li>
-                <li><a href="<?= pageUrl('nouveautes.php') ?>" class="navbar__link<?= isNavActive('nouveautes.php', $currentPage) ?>"><?= t('nav_new_arrivals') ?></a></li>
             </ul>
         </nav>
 

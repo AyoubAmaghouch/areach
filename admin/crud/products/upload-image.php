@@ -14,8 +14,15 @@ const MAX_VARIANT_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function redirectAfterImageUpload(int $productId, string $message): never
 {
-    $_SESSION['variant_flash'] = ['message' => $message];
-    header('Location: manage-variants.php?id=' . $productId);
+    $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'error'];
+    header('Location: edit.php?id=' . $productId);
+    exit;
+}
+
+function redirectAfterImageUploadSuccess(int $productId, string $message): never
+{
+    $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'success'];
+    header('Location: edit.php?id=' . $productId);
     exit;
 }
 
@@ -126,9 +133,15 @@ try {
         }
 
         $clearPrimary = $pdo->prepare(
-            'UPDATE product_images SET is_primary = 0 WHERE id_variant = :id_variant'
+            'UPDATE product_images
+             SET is_primary = 0
+             WHERE id_variant IN (
+                 SELECT id_variant
+                 FROM product_variants
+                 WHERE id_product = :id_product
+             )'
         );
-        $clearPrimary->execute(['id_variant' => $variantId]);
+        $clearPrimary->execute(['id_product' => $productId]);
 
         $setPrimary = $pdo->prepare(
             'UPDATE product_images
@@ -138,7 +151,7 @@ try {
         $setPrimary->execute(['id_image' => $imageId, 'id_variant' => $variantId]);
 
         $pdo->commit();
-        redirectAfterImageUpload($productId, 'Primary image updated.');
+        redirectAfterImageUploadSuccess($productId, 'Primary image updated.');
     }
 
     $uploads = normalizedImageUploads($_FILES['images'] ?? []);
@@ -165,17 +178,27 @@ try {
     $pdo->beginTransaction();
 
     $primaryStatement = $pdo->prepare(
-        'SELECT COUNT(*) FROM product_images WHERE id_variant = :id_variant AND is_primary = 1'
+        'SELECT COUNT(*)
+         FROM product_images pi
+         INNER JOIN product_variants pv ON pv.id_variant = pi.id_variant
+         WHERE pv.id_product = :id_product
+           AND pi.is_primary = 1'
     );
-    $primaryStatement->execute(['id_variant' => $variantId]);
+    $primaryStatement->execute(['id_product' => $productId]);
     $hasPrimary = (int) $primaryStatement->fetchColumn() > 0;
     $makePrimary = isset($_POST['make_primary']) && $_POST['make_primary'] === '1';
 
     if ($makePrimary) {
         $clearPrimary = $pdo->prepare(
-            'UPDATE product_images SET is_primary = 0 WHERE id_variant = :id_variant'
+            'UPDATE product_images
+             SET is_primary = 0
+             WHERE id_variant IN (
+                 SELECT id_variant
+                 FROM product_variants
+                 WHERE id_product = :id_product
+             )'
         );
-        $clearPrimary->execute(['id_variant' => $variantId]);
+        $clearPrimary->execute(['id_product' => $productId]);
     }
 
     $insertImage = $pdo->prepare(
@@ -200,7 +223,7 @@ try {
     }
 
     $pdo->commit();
-    redirectAfterImageUpload($productId, 'Images uploaded.');
+    redirectAfterImageUploadSuccess($productId, 'Images uploaded.');
 } catch (InvalidArgumentException $exception) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

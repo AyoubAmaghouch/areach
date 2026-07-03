@@ -9,11 +9,16 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 if (!isset($_GET['id'])) {
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        echo json_encode(['success' => false, 'message' => 'Bannière introuvable.']);
+        exit;
+    }
     header("Location: ../../banners.php");
     exit;
 }
 
 $id = (int) $_GET['id'];
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
 try {
     $pdo->beginTransaction();
@@ -63,9 +68,17 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    if ($isAjax) {
+        echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression.']);
+        exit;
+    }
     header("Location: ../../banners.php?error=delete_failed");
     exit;
 }
 
+if ($isAjax) {
+    echo json_encode(['success' => true, 'message' => 'Bannière supprimée avec succès.']);
+    exit;
+}
 header("Location: ../../banners.php?success=deleted");
 exit;

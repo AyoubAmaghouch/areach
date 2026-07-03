@@ -13,8 +13,15 @@ if (!isset($_SESSION['admin_id'])) {
 
 function redirectToVariants(int $productId, string $message): never
 {
-    $_SESSION['variant_flash'] = ['message' => $message];
-    header('Location: manage-variants.php?id=' . $productId);
+    $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'error'];
+    header('Location: edit.php?id=' . $productId);
+    exit;
+}
+
+function redirectToVariantsSuccess(int $productId, string $message): never
+{
+    $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'success'];
+    header('Location: edit.php?id=' . $productId);
     exit;
 }
 
@@ -85,13 +92,13 @@ function validVariantData(array $input): array
     }
 
     $sizes = array_values(array_unique(array_map('strval', (array) ($input['sizes'] ?? []))));
-    $allowedSizes = array_map('strval', range(36, 45));
+    $allowedSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
     if (array_diff($sizes, $allowedSizes)) {
         throw new InvalidArgumentException('Invalid size selection.');
     }
 
-    sort($sizes, SORT_NUMERIC);
+    $sizes = array_values(array_intersect($allowedSizes, $sizes));
 
     return [
         'color_name' => $colorName,
@@ -169,7 +176,7 @@ try {
     }
 
     $pdo->commit();
-    redirectToVariants($productId, 'Variant saved.');
+    redirectToVariantsSuccess($productId, 'Variant saved.');
 } catch (InvalidArgumentException $exception) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

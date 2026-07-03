@@ -8,138 +8,110 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-if (!isset($_GET['id'])) {
+function redirectBanner(string $message, string $type = 'success'): never
+{
+    $_SESSION['banner_flash'] = ['message' => $message, 'type' => $type];
     header("Location: ../../banners.php");
     exit;
 }
 
-$id = (int) $_GET['id'];
+function bannerUpload(string $field, string $current): string
+{
+    if (empty($_FILES[$field]['name'])) {
+        return $current;
+    }
 
-$stmt = $pdo->prepare("
-SELECT *
-FROM banners
-WHERE id_banner = ?
-");
+    if (($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException("Erreur lors du telechargement de l'image.");
+    }
 
-$stmt->execute([$id]);
+    $tmp = $_FILES[$field]['tmp_name'] ?? '';
+    if (!is_uploaded_file($tmp) || getimagesize($tmp) === false) {
+        throw new RuntimeException("Le fichier telecharge n'est pas une image valide.");
+    }
 
-$banner = $stmt->fetch();
+    $extension = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+    if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+        throw new RuntimeException('Format image non supporte.');
+    }
 
-if (!$banner) {
-    die("Bannière introuvable.");
+    $directory = __DIR__ . '/../../../assets/uploads/banners';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        throw new RuntimeException("Le dossier des bannieres est indisponible.");
+    }
+
+    $name = time() . '_' . $field . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+    if (!move_uploaded_file($tmp, $directory . '/' . $name)) {
+        throw new RuntimeException("L'image n'a pas pu etre enregistree.");
+    }
+
+    if ($current !== '') {
+        $old = $directory . '/' . basename($current);
+        if (is_file($old)) {
+            unlink($old);
+        }
+    }
+
+    return $name;
 }
 
-include '../../includes/header.php';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: ../../banners.php");
+    exit;
+}
 
-?>
+$id = (int) ($_POST['id_banner'] ?? 0);
+$title = trim((string) ($_POST['title'] ?? ''));
+$subtitle = trim((string) ($_POST['subtitle'] ?? ''));
+$buttonText = trim((string) ($_POST['button_text'] ?? ''));
+$buttonLink = trim((string) ($_POST['button_link'] ?? ''));
+$displayOrder = max(1, (int) ($_POST['display_order'] ?? 1));
+$status = (int) ($_POST['status'] ?? 1);
+$status = in_array($status, [0, 1], true) ? $status : 1;
 
-<h2>Modifier une bannière</h2>
+if ($id < 1 || $title === '') {
+    redirectBanner('Veuillez remplir les champs obligatoires.', 'error');
+}
 
-<form action="update.php" method="POST" enctype="multipart/form-data">
+try {
+    $stmt = $pdo->prepare("SELECT desktop_image, mobile_image FROM banners WHERE id_banner = ?");
+    $stmt->execute([$id]);
+    $banner = $stmt->fetch();
 
-    <input
-        type="hidden"
-        name="id_banner"
-        value="<?= $banner['id_banner']; ?>">
+    if (!$banner) {
+        redirectBanner('Banniere introuvable.', 'error');
+    }
 
-    <label>Titre</label><br>
-    <input
-        type="text"
-        name="title"
-        value="<?= htmlspecialchars($banner['title']); ?>"
-        required>
+    $desktopImage = bannerUpload('desktop_image', (string) ($banner['desktop_image'] ?? ''));
+    $mobileImage = bannerUpload('mobile_image', (string) ($banner['mobile_image'] ?? ''));
 
-    <br><br>
+    $stmt = $pdo->prepare("
+        UPDATE banners
+        SET title = ?,
+            subtitle = ?,
+            desktop_image = ?,
+            mobile_image = ?,
+            button_text = ?,
+            button_link = ?,
+            display_order = ?,
+            status = ?
+        WHERE id_banner = ?
+    ");
 
-    <label>Sous-titre</label><br>
-    <textarea
-        name="subtitle"
-        rows="4"><?= htmlspecialchars($banner['subtitle']); ?></textarea>
+    $stmt->execute([
+        $title,
+        $subtitle,
+        $desktopImage,
+        $mobileImage,
+        $buttonText,
+        $buttonLink,
+        $displayOrder,
+        $status,
+        $id,
+    ]);
 
-    <br><br>
-
-    <label>Image Desktop actuelle</label><br>
-
-    <?php if(!empty($banner['desktop_image'])): ?>
-
-        <img
-            src="../../../assets/uploads/banners/<?= $banner['desktop_image']; ?>"
-            width="200">
-
-    <?php endif; ?>
-
-    <br><br>
-
-    <label>Nouvelle image Desktop</label><br>
-    <input type="file" name="desktop_image">
-
-    <br><br>
-
-    <label>Image Mobile actuelle</label><br>
-
-    <?php if(!empty($banner['mobile_image'])): ?>
-
-        <img
-            src="../../../assets/uploads/banners/<?= $banner['mobile_image']; ?>"
-            width="120">
-
-    <?php endif; ?>
-
-    <br><br>
-
-    <label>Nouvelle image Mobile</label><br>
-    <input type="file" name="mobile_image">
-
-    <br><br>
-
-    <label>Texte du bouton</label><br>
-    <input
-        type="text"
-        name="button_text"
-        value="<?= htmlspecialchars($banner['button_text']); ?>">
-
-    <br><br>
-
-    <label>Lien du bouton</label><br>
-    <input
-        type="text"
-        name="button_link"
-        value="<?= htmlspecialchars($banner['button_link']); ?>">
-
-    <br><br>
-
-    <label>Ordre</label><br>
-    <input
-        type="number"
-        name="display_order"
-        value="<?= $banner['display_order']; ?>">
-
-    <br><br>
-
-    <label>Statut</label><br>
-
-    <select name="status">
-
-        <option value="1" <?= $banner['status']==1 ? 'selected' : ''; ?>>
-            Actif
-        </option>
-
-        <option value="0" <?= $banner['status']==0 ? 'selected' : ''; ?>>
-            Inactif
-        </option>
-
-    </select>
-
-    <br><br>
-
-    <button type="submit">
-        Modifier
-    </button>
-
-    <a href="../../banners.php">
-        Retour
-    </a>
-
-</form>
-
-<?php include '../../includes/footer.php'; ?>
+    redirectBanner('Banniere modifiee avec succes.');
+} catch (Throwable $exception) {
+    error_log($exception->getMessage());
+    redirectBanner("La banniere n'a pas pu etre modifiee.", 'error');
+}

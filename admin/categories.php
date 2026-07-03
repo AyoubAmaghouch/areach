@@ -24,12 +24,16 @@ $sql = "SELECT
 $stmt       = $pdo->query($sql);
 $categories = $stmt->fetchAll();
 
-// Handle GET-based flash from delete redirect
-$flash = null;
-if (isset($_GET['success']) && $_GET['success'] === 'deleted') {
+// Handle flash from CRUD redirects
+$flash = $_SESSION['category_flash'] ?? null;
+unset($_SESSION['category_flash']);
+
+if (!$flash && isset($_GET['success']) && $_GET['success'] === 'deleted') {
     $flash = ['type' => 'success', 'message' => 'Catégorie supprimée avec succès.'];
-} elseif (isset($_GET['error']) && $_GET['error'] === 'delete_failed') {
+} elseif (!$flash && isset($_GET['error']) && $_GET['error'] === 'delete_failed') {
     $flash = ['type' => 'error', 'message' => 'Erreur lors de la suppression.'];
+} elseif (!$flash && isset($_GET['error']) && $_GET['error'] === 'has_products') {
+    $flash = ['type' => 'warning', 'message' => 'Cette catégorie ne peut pas être supprimée car elle contient des produits.'];
 }
 
 include 'includes/header.php';
@@ -73,7 +77,7 @@ include 'includes/header.php';
     </div>
 
     <div class="table-responsive">
-        <table class="admin-table">
+        <table class="table">
             <thead>
                 <tr>
                     <th style="width:50px;">ID</th>
@@ -120,20 +124,11 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <div class="table-actions justify-content-center">
-                                <a href="crud/categories/edit.php?id=<?= (int)$category['id_category'] ?>"
-                                   class="btn-action edit"
-                                   data-bs-toggle="tooltip" title="Modifier">
-                                    <i class="fa-solid fa-pen"></i>
-                                </a>
-                                <button
-                                    type="button"
-                                    class="btn-action delete"
-                                    data-bs-toggle="tooltip" title="Supprimer"
-                                    onclick="confirmDelete(<?= (int)$category['id_category'] ?>, '<?= addslashes($catName) ?>')">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
+                            <a href="crud/categories/edit.php?id=<?= (int)$category['id_category'] ?>"
+                               class="btn btn-sm btn-action edit me-1"
+                               data-bs-toggle="tooltip" title="Modifier">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
                         </td>
 
                     </tr>
@@ -149,33 +144,6 @@ include 'includes/header.php';
         <div class="pagination-controls" id="pagination-controls"></div>
     </div>
 
-</div>
-
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-delete">
-            <div class="modal-header border-0 pb-0">
-                <div class="modal-icon">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-            </div>
-            <div class="modal-body text-center pt-0">
-                <h5 class="fw-bold mb-2">Supprimer cette catégorie ?</h5>
-                <p class="text-muted mb-0">
-                    Vous allez supprimer <strong id="delete-cat-name"></strong>. Cette action est irréversible.
-                </p>
-            </div>
-            <div class="modal-footer border-0 justify-content-center gap-3">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <i class="fa-solid fa-xmark me-1"></i> Annuler
-                </button>
-                <a href="#" id="delete-confirm-btn" class="btn btn-danger">
-                    <i class="fa-solid fa-trash me-1"></i> Supprimer
-                </a>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -221,30 +189,6 @@ include 'includes/header.php';
 
     search.addEventListener('input', function () { currentPage = 1; render(); });
     render();
-
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    window.confirmDelete = function (id, name) {
-        const btn = document.getElementById('delete-confirm-btn');
-        if (btn) {
-            btn.classList.remove('disabled');
-            btn.innerHTML = '<i class="fa-solid fa-trash me-1"></i> Oui, supprimer';
-            btn.href = 'crud/categories/delete.php?id=' + id;
-        }
-        document.getElementById('delete-cat-name').textContent = name;
-        deleteModal.show();
-    };
-
-    const confirmBtn = document.getElementById('delete-confirm-btn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function(e) {
-            if (this.classList.contains('disabled')) {
-                e.preventDefault();
-                return;
-            }
-            this.classList.add('disabled');
-            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Suppression...';
-        });
-    }
 })();
 </script>
 

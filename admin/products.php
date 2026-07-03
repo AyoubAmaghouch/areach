@@ -38,14 +38,14 @@ LEFT JOIN product_images pi
     )
 LEFT JOIN category_translations ct
     ON p.id_category = ct.id_category
-LEFT JOIN languages lc
-    ON ct.id_language = lc.id_language
+    AND ct.id_language = (
+        SELECT id_language FROM languages WHERE code = 'fr' LIMIT 1
+    )
 LEFT JOIN product_translations pt
     ON p.id_product = pt.id_product
-LEFT JOIN languages lp
-    ON pt.id_language = lp.id_language
-WHERE lc.code = 'fr'
-AND lp.code = 'fr'
+    AND pt.id_language = (
+        SELECT id_language FROM languages WHERE code = 'fr' LIMIT 1
+    )
 ORDER BY p.id_product DESC
 ";
 
@@ -61,6 +61,8 @@ if (!$flash && isset($_GET['success']) && $_GET['success'] === 'deleted') {
     $flash = ['type' => 'success', 'message' => 'Produit supprimé avec succès.'];
 } elseif (!$flash && isset($_GET['error']) && $_GET['error'] === 'delete_failed') {
     $flash = ['type' => 'error', 'message' => 'Erreur lors de la suppression du produit.'];
+} elseif (!$flash && isset($_GET['error']) && $_GET['error'] === 'has_orders') {
+    $flash = ['type' => 'warning', 'message' => 'Ce produit ne peut pas être supprimé car il est lié à des commandes existantes.'];
 }
 
 include 'includes/header.php';
@@ -112,7 +114,7 @@ include 'includes/header.php';
     </div>
 
     <div class="table-responsive">
-        <table class="admin-table" id="products-table">
+        <table class="table" id="products-table">
             <thead>
                 <tr>
                     <th style="width:50px;">ID</th>
@@ -178,25 +180,11 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <div class="table-actions justify-content-center">
-                                <a href="crud/products/manage-variants.php?id=<?= (int)$product['id_product'] ?>"
-                                   class="btn-action variants"
-                                   data-bs-toggle="tooltip" title="Variantes & Images">
-                                    <i class="fa-solid fa-palette"></i>
-                                </a>
-                                <a href="crud/products/edit.php?id=<?= (int)$product['id_product'] ?>"
-                                   class="btn-action edit"
-                                   data-bs-toggle="tooltip" title="Modifier">
-                                    <i class="fa-solid fa-pen"></i>
-                                </a>
-                                <button
-                                    type="button"
-                                    class="btn-action delete"
-                                    data-bs-toggle="tooltip" title="Supprimer"
-                                    onclick="confirmDelete(<?= (int)$product['id_product'] ?>, '<?= addslashes($name) ?>')">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
+                            <a href="crud/products/edit.php?id=<?= (int)$product['id_product'] ?>"
+                               class="btn btn-sm btn-action edit me-1"
+                               data-bs-toggle="tooltip" title="Modifier">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
                         </td>
 
                     </tr>
@@ -212,34 +200,6 @@ include 'includes/header.php';
         <div class="pagination-controls" id="pagination-controls"></div>
     </div>
 
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-delete">
-            <div class="modal-header border-0 pb-0">
-                <div class="modal-icon">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-            </div>
-            <div class="modal-body text-center pt-0">
-                <h5 class="fw-bold mb-2">Supprimer ce produit ?</h5>
-                <p class="text-muted mb-0">
-                    Vous êtes sur le point de supprimer <strong id="delete-product-name"></strong>.
-                    Cette action est irréversible.
-                </p>
-            </div>
-            <div class="modal-footer border-0 justify-content-center gap-3">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <i class="fa-solid fa-xmark me-1"></i> Annuler
-                </button>
-                <a href="#" id="delete-confirm-btn" class="btn btn-danger">
-                    <i class="fa-solid fa-trash me-1"></i> Oui, supprimer
-                </a>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -331,33 +291,7 @@ include 'includes/header.php';
     statusFilter.addEventListener('change', function () { currentPage = 1; render(); });
 
     render();
-
-    // Delete modal
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    window.confirmDelete = function (id, name) {
-        const btn = document.getElementById('delete-confirm-btn');
-        if (btn) {
-            btn.classList.remove('disabled');
-            btn.innerHTML = '<i class="fa-solid fa-trash me-1"></i> Oui, supprimer';
-            btn.href = 'crud/products/delete.php?id=' + id;
-        }
-        document.getElementById('delete-product-name').textContent = name;
-        deleteModal.show();
-    };
-
-    const confirmBtn = document.getElementById('delete-confirm-btn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function(e) {
-            if (this.classList.contains('disabled')) {
-                e.preventDefault();
-                return;
-            }
-            this.classList.add('disabled');
-            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Suppression...';
-        });
-    }
 })();
 </script>
 
 <?php include 'includes/footer.php'; ?>
-

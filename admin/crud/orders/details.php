@@ -16,7 +16,11 @@ if (!isset($_GET['id'])) {
 $id = (int) $_GET['id'];
 
 // Commande
-$stmt = $pdo->prepare("SELECT * FROM orders WHERE id_order = ?");
+$stmt = $pdo->prepare("
+    SELECT orders.*, COALESCE(NULLIF(status, ''), 'En attente') AS status
+    FROM orders
+    WHERE id_order = ?
+");
 $stmt->execute([$id]);
 $order = $stmt->fetch();
 
@@ -171,7 +175,7 @@ if ($isPrintMode): ?>
             <div class="form-card-body p-0">
 
                 <div class="table-responsive">
-                    <table class="admin-table">
+                    <table class="table table-hover align-middle">
                         <thead>
                             <tr>
                                 <th style="width:50px;"></th>

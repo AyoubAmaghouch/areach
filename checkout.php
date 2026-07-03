@@ -94,17 +94,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $total = $subtotal + $shipping;
 
     $orderData = [
+        'order_number' => 'CMD-' . date('Ymd-His') . '-' . random_int(100, 999),
         'id_customer' => $customerId,
         'customer_name' => $customerName,
+        'customer_lastname' => '',
         'email' => $customerEmail,
-        'phone' => $customerPhone,
+        'telephone' => $customerPhone,
         'address' => $address,
         'city' => $city,
         'notes' => $notes,
-        'subtotal' => $subtotal,
-        'shipping' => $shipping,
         'total' => $total,
-        'status' => 'pending',
+        'status' => 'En attente',
         'created_at' => date('Y-m-d H:i:s'),
     ];
 
@@ -114,12 +114,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         foreach ($cartItems as $item) {
             insertAllowed($pdo, 'order_items', [
                 'id_order' => $orderId,
-                'id_product' => (int) ($item['id_product'] ?? 0),
                 'id_variant' => (int) ($item['id_variant'] ?? 0),
-                'product_name' => $item['name'] ?? '',
+                'size' => (string) ($item['size'] ?? ''),
                 'quantity' => (int) ($item['quantity'] ?? 1),
-                'unit_price' => (float) ($item['price'] ?? 0),
-                'total_price' => (float) ($item['price'] ?? 0) * (int) ($item['quantity'] ?? 1),
+                'price' => (float) ($item['price'] ?? 0),
             ]);
         }
 

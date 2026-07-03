@@ -357,11 +357,13 @@ function getActiveBanners(PDO $pdo): array
 function getHomeCategories(PDO $pdo, string $langCode): array
 {
     $stmt = $pdo->prepare(
-        'SELECT c.id_category, c.image, ct.name
+        'SELECT c.id_category, c.image, COALESCE(ct.name, ct_fr.name) AS name
          FROM categories c
-         INNER JOIN category_translations ct ON c.id_category = ct.id_category
-         INNER JOIN languages l ON ct.id_language = l.id_language
-         WHERE c.status = 1 AND l.code = ?
+         LEFT JOIN languages l ON l.code = ?
+         LEFT JOIN category_translations ct ON c.id_category = ct.id_category AND ct.id_language = l.id_language
+         LEFT JOIN languages l_fr ON l_fr.code = "fr"
+         LEFT JOIN category_translations ct_fr ON c.id_category = ct_fr.id_category AND ct_fr.id_language = l_fr.id_language
+         WHERE c.status = 1
          ORDER BY c.id_category ASC'
     );
     $stmt->execute([$langCode]);
@@ -427,7 +429,7 @@ function getPromotionProducts(PDO $pdo, string $langCode, int $limit = 8): array
     $stmt = $pdo->prepare(
         'SELECT
             p.id_product,
-            pt.name AS product_name,
+            COALESCE(pt.name, pt_fr.name) AS product_name,
             pv.id_variant,
             pv.price,
             pv.promotion_price,
@@ -436,8 +438,10 @@ function getPromotionProducts(PDO $pdo, string $langCode, int $limit = 8): array
             pv.discount_percentage,
             pi.image AS product_image
          FROM products p
-         INNER JOIN product_translations pt ON p.id_product = pt.id_product
-         INNER JOIN languages l ON pt.id_language = l.id_language
+         LEFT JOIN languages l ON l.code = ?
+         LEFT JOIN product_translations pt ON pt.id_product = p.id_product AND pt.id_language = l.id_language
+         LEFT JOIN languages l_fr ON l_fr.code = "fr"
+         LEFT JOIN product_translations pt_fr ON pt_fr.id_product = p.id_product AND pt_fr.id_language = l_fr.id_language
          INNER JOIN product_variants pv ON pv.id_variant = (
              SELECT pv2.id_variant
              FROM product_variants pv2
@@ -452,7 +456,7 @@ function getPromotionProducts(PDO $pdo, string $langCode, int $limit = 8): array
              LIMIT 1
          )
          ' . productImageJoinSql() . '
-         WHERE p.status = 1 AND l.code = ?
+         WHERE p.status = 1
          ORDER BY pv.discount_percentage DESC, p.created_at DESC
          LIMIT ' . (int) $limit
     );
@@ -646,15 +650,19 @@ function getProductById(PDO $pdo, int $productId, string $langCode): ?array
             p.id_product,
             p.id_category,
             p.reference,
-            pt.name AS product_name,
-            pt.description,
-            ct.name AS category_name,
+            COALESCE(pt.name, pt_fr.name) AS product_name,
+            COALESCE(pt.description, pt_fr.description) AS description,
+            COALESCE(ct.name, ct_fr.name) AS category_name,
             pi.image AS product_image
          FROM products p
-         INNER JOIN product_translations pt ON p.id_product = pt.id_product
-         INNER JOIN languages l ON pt.id_language = l.id_language
+         LEFT JOIN languages l ON l.code = ?
+         LEFT JOIN product_translations pt ON pt.id_product = p.id_product AND pt.id_language = l.id_language
+         LEFT JOIN languages l_fr ON l_fr.code = "fr"
+         LEFT JOIN product_translations pt_fr ON pt_fr.id_product = p.id_product AND pt_fr.id_language = l_fr.id_language
          LEFT JOIN category_translations ct ON p.id_category = ct.id_category
             AND ct.id_language = l.id_language
+         LEFT JOIN category_translations ct_fr ON p.id_category = ct_fr.id_category
+            AND ct_fr.id_language = l_fr.id_language
          LEFT JOIN product_variants pv ON pv.id_variant = (
              SELECT pv_image.id_variant
              FROM product_variants pv_image
@@ -663,10 +671,10 @@ function getProductById(PDO $pdo, int $productId, string $langCode): ?array
              LIMIT 1
          )
          ' . productImageJoinSql() . '
-         WHERE p.id_product = ? AND p.status = 1 AND l.code = ?
+         WHERE p.id_product = ? AND p.status = 1
          LIMIT 1'
     );
-    $stmt->execute([$productId, $langCode]);
+    $stmt->execute([$langCode, $productId]);
     $product = $stmt->fetch();
 
     return $product ?: null;
@@ -682,7 +690,7 @@ function getRelatedProducts(
     $stmt = $pdo->prepare(
         'SELECT
             p.id_product,
-            pt.name AS product_name,
+            COALESCE(pt.name, pt_fr.name) AS product_name,
             pv.id_variant,
             pv.price,
             pv.promotion_price,
@@ -691,8 +699,10 @@ function getRelatedProducts(
             pv.discount_percentage,
             pi.image AS product_image
          FROM products p
-         INNER JOIN product_translations pt ON p.id_product = pt.id_product
-         INNER JOIN languages l ON pt.id_language = l.id_language
+         LEFT JOIN languages l ON l.code = ?
+         LEFT JOIN product_translations pt ON pt.id_product = p.id_product AND pt.id_language = l.id_language
+         LEFT JOIN languages l_fr ON l_fr.code = "fr"
+         LEFT JOIN product_translations pt_fr ON pt_fr.id_product = p.id_product AND pt_fr.id_language = l_fr.id_language
          INNER JOIN product_variants pv ON pv.id_variant = (
              SELECT pv_related.id_variant
              FROM product_variants pv_related
@@ -704,11 +714,10 @@ function getRelatedProducts(
          WHERE p.status = 1
            AND p.id_category = ?
            AND p.id_product <> ?
-           AND l.code = ?
          ORDER BY p.created_at DESC
          LIMIT ' . (int) $limit
     );
-    $stmt->execute([$categoryId, $productId, $langCode]);
+    $stmt->execute([$langCode, $categoryId, $productId]);
 
     return $stmt->fetchAll();
 }
@@ -940,7 +949,13 @@ function getShopProductsListing(PDO $pdo, string $langCode, array $options = [])
 
     $effectivePrice = getShopEffectivePriceSql();
     $variantSubquery = getShopVariantSubquery();
-    $where = ['p.status = 1', 'l.code = ?'];
+    $translationJoins =
+        'LEFT JOIN languages l ON l.code = ?
+         LEFT JOIN product_translations pt ON pt.id_product = p.id_product AND pt.id_language = l.id_language
+         LEFT JOIN languages l_fr ON l_fr.code = "fr"
+         LEFT JOIN product_translations pt_fr ON pt_fr.id_product = p.id_product AND pt_fr.id_language = l_fr.id_language';
+
+    $where = ['p.status = 1'];
     $params = [$langCode];
 
     if ($categoryId > 0) {
@@ -949,7 +964,7 @@ function getShopProductsListing(PDO $pdo, string $langCode, array $options = [])
     }
 
     if ($search !== '') {
-        $where[] = 'pt.name LIKE ?';
+        $where[] = 'COALESCE(pt.name, pt_fr.name) LIKE ?';
         $params[] = '%' . $search . '%';
     }
 
@@ -971,8 +986,7 @@ function getShopProductsListing(PDO $pdo, string $langCode, array $options = [])
 
     $countSql = 'SELECT COUNT(DISTINCT p.id_product)
         FROM products p
-        INNER JOIN product_translations pt ON p.id_product = pt.id_product
-        INNER JOIN languages l ON pt.id_language = l.id_language
+        ' . $translationJoins . '
         INNER JOIN product_variants pv ON pv.id_variant = ' . $variantSubquery . '
         WHERE ' . $whereSql;
 
@@ -996,7 +1010,7 @@ function getShopProductsListing(PDO $pdo, string $langCode, array $options = [])
     $sql = 'SELECT
             p.id_product,
             p.created_at,
-            pt.name AS product_name,
+            COALESCE(pt.name, pt_fr.name) AS product_name,
             pv.id_variant,
             pv.price,
             pv.promotion_price,
@@ -1011,8 +1025,7 @@ function getShopProductsListing(PDO $pdo, string $langCode, array $options = [])
                 WHERE pv_stock.id_product = p.id_product AND pv_stock.status = 1
             ) AS total_stock
         FROM products p
-        INNER JOIN product_translations pt ON p.id_product = pt.id_product
-        INNER JOIN languages l ON pt.id_language = l.id_language
+        ' . $translationJoins . '
         INNER JOIN product_variants pv ON pv.id_variant = ' . $variantSubquery . '
         ' . productImageJoinSql() . '
         WHERE ' . $whereSql . '

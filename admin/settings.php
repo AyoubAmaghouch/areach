@@ -10,6 +10,8 @@ if (!isset($_SESSION['admin_id'])) {
 
 $stmt     = $pdo->query("SELECT * FROM settings LIMIT 1");
 $settings = $stmt->fetch();
+$flash = $_SESSION['settings_flash'] ?? null;
+unset($_SESSION['settings_flash']);
 
 include 'includes/header.php';
 ?>
@@ -25,7 +27,14 @@ include 'includes/header.php';
     </div>
 </div>
 
-<form action="crud/settings/update.php" method="POST" enctype="multipart/form-data">
+<?php if ($flash): ?>
+    <div class="flash-alert <?= htmlspecialchars($flash['type'] ?? 'info') ?>" data-auto-dismiss role="alert">
+        <i class="fa-solid <?= ($flash['type'] ?? '') === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i>
+        <?= htmlspecialchars($flash['message'] ?? '') ?>
+    </div>
+<?php endif; ?>
+
+<form action="crud/settings.php/update.php" method="POST" enctype="multipart/form-data">
 
     <div class="row g-4">
 

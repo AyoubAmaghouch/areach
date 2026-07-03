@@ -9,11 +9,30 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 if (!isset($_GET['id'])) {
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        echo json_encode(['success' => false, 'message' => 'Catégorie introuvable.']);
+        exit;
+    }
     header("Location: ../../categories.php");
     exit;
 }
 
 $id = (int) $_GET['id'];
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+// Check if any products belong to this category
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE id_category = ?");
+$stmt->execute([$id]);
+$productCount = (int) $stmt->fetchColumn();
+
+if ($productCount > 0) {
+    if ($isAjax) {
+        echo json_encode(['success' => false, 'message' => 'Cette catégorie ne peut pas être supprimée car elle contient des produits.']);
+        exit;
+    }
+    header("Location: ../../categories.php?error=has_products");
+    exit;
+}
 
 try {
     $pdo->beginTransaction();
@@ -62,9 +81,17 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    if ($isAjax) {
+        echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression.']);
+        exit;
+    }
     header("Location: ../../categories.php?error=delete_failed");
     exit;
 }
 
+if ($isAjax) {
+    echo json_encode(['success' => true, 'message' => 'Catégorie supprimée avec succès.']);
+    exit;
+}
 header("Location: ../../categories.php?success=deleted");
 exit;

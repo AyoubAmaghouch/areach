@@ -8,6 +8,13 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+function redirectBannerStore(string $message, string $type = 'success'): never
+{
+    $_SESSION['banner_flash'] = ['message' => $message, 'type' => $type];
+    header("Location: ../../banners.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     header("Location: ../../banners.php");
     exit;
@@ -21,7 +28,12 @@ $display_order = (int) $_POST['display_order'];
 $status = (int) $_POST['status'];
 
 if (empty($title)) {
-    die("Le titre est obligatoire.");
+    redirectBannerStore("Le titre est obligatoire.", 'error');
+}
+
+$directory = __DIR__ . '/../../../assets/uploads/banners';
+if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+    redirectBannerStore("Le dossier des bannieres est indisponible.", 'error');
 }
 
 /* Upload Desktop Image */
@@ -32,10 +44,12 @@ if (!empty($_FILES['desktop_image']['name'])) {
 
     $desktopImage = time() . "_desktop_" . basename($_FILES['desktop_image']['name']);
 
-    move_uploaded_file(
+    if (!move_uploaded_file(
         $_FILES['desktop_image']['tmp_name'],
-        "../../../assets/uploads/banners/" . $desktopImage
-    );
+        $directory . "/" . $desktopImage
+    )) {
+        redirectBannerStore("L'image desktop n'a pas pu etre enregistree.", 'error');
+    }
 }
 
 /* Upload Mobile Image */
@@ -46,10 +60,12 @@ if (!empty($_FILES['mobile_image']['name'])) {
 
     $mobileImage = time() . "_mobile_" . basename($_FILES['mobile_image']['name']);
 
-    move_uploaded_file(
+    if (!move_uploaded_file(
         $_FILES['mobile_image']['tmp_name'],
-        "../../../assets/uploads/banners/" . $mobileImage
-    );
+        $directory . "/" . $mobileImage
+    )) {
+        redirectBannerStore("L'image mobile n'a pas pu etre enregistree.", 'error');
+    }
 }
 
 /* Insert */
@@ -83,5 +99,4 @@ $stmt->execute([
     $status
 ]);
 
-header("Location: ../../banners.php");
-exit;
+redirectBannerStore("Banniere enregistree avec succes.");

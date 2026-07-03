@@ -23,7 +23,7 @@ if (empty($_SESSION['variant_csrf_token'])) {
 }
 
 $csrfToken    = $_SESSION['variant_csrf_token'];
-$allowedSizes = range(36, 45);
+$allowedSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 $productStatement = $pdo->prepare(
     'SELECT id_product, reference, status FROM products WHERE id_product = :id_product'
@@ -58,7 +58,7 @@ $variants = $variantStatement->fetchAll();
 $sizeStatement = $pdo->prepare(
     'SELECT size FROM product_variant_sizes
      WHERE id_variant = :id_variant
-     ORDER BY CAST(size AS UNSIGNED), size'
+     ORDER BY FIELD(size, "XS", "S", "M", "L", "XL", "XXL"), size'
 );
 
 $imageStatement = $pdo->prepare(
@@ -118,8 +118,9 @@ include '../../includes/header.php';
 
 <!-- Flash Message -->
 <?php if (is_array($flash) && isset($flash['message'])): ?>
-    <div class="flash-alert <?= $flash['type'] === 'success' ? 'success' : 'error' ?>" data-auto-dismiss>
-        <i class="fa-solid <?= $flash['type'] === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i>
+    <?php $flashType = ($flash['type'] ?? 'error') === 'success' ? 'success' : 'error'; ?>
+    <div class="flash-alert <?= $flashType ?>" data-auto-dismiss>
+        <i class="fa-solid <?= $flashType === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i>
         <?= variantEscape($flash['message']) ?>
     </div>
 <?php endif; ?>
@@ -355,6 +356,7 @@ include '../../includes/header.php';
         </div>
     </div>
     <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Add New Variant (Original Logic) -->
@@ -493,4 +495,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php include '../../includes/footer.php'; ?>
-

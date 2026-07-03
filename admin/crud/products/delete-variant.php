@@ -12,8 +12,15 @@ if (!isset($_SESSION['admin_id'])) {
 
 function redirectAfterVariantDelete(int $productId, string $message): never
 {
-    $_SESSION['variant_flash'] = ['message' => $message];
-    header('Location: manage-variants.php?id=' . $productId);
+    $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'error'];
+    header('Location: edit.php?id=' . $productId);
+    exit;
+}
+
+function redirectAfterVariantDeleteSuccess(int $productId, string $message): never
+{
+    $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'success'];
+    header('Location: edit.php?id=' . $productId);
     exit;
 }
 
@@ -24,11 +31,28 @@ function removeProductFile(string $filename): void
         return;
     }
 
-    $uploadDirectory = dirname(__DIR__, 3) . '/assets/uploads/products';
-    $path = $uploadDirectory . DIRECTORY_SEPARATOR . $safeFilename;
+    $projectRoot = dirname(__DIR__, 3);
+    $paths = [
+        $projectRoot . '/assets/uploads/products/' . $safeFilename,
+        $projectRoot . '/assets/images/products/' . $safeFilename,
+    ];
 
-    if (is_file($path) && !unlink($path)) {
-        error_log('Unable to delete product image: ' . $path);
+    $productRoot = $projectRoot . '/assets/images/products';
+    if (is_dir($productRoot)) {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($productRoot, FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($iterator as $file) {
+            if ($file->isFile() && $file->getFilename() === $safeFilename) {
+                $paths[] = $file->getPathname();
+            }
+        }
+    }
+
+    foreach (array_unique($paths) as $path) {
+        if (is_file($path) && !unlink($path)) {
+            error_log('Unable to delete product image: ' . $path);
+        }
     }
 }
 
@@ -91,7 +115,7 @@ try {
         removeProductFile((string) $filename);
     }
 
-    redirectAfterVariantDelete($productId, 'Variant deleted.');
+    redirectAfterVariantDeleteSuccess($productId, 'Variant deleted.');
 } catch (InvalidArgumentException $exception) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

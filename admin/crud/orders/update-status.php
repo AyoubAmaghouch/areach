@@ -19,16 +19,25 @@ $id = (int) $_GET['id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $status = $_POST['status'];
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
     $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id_order = ?");
     $stmt->execute([$status, $id]);
 
+    if ($isAjax) {
+        echo json_encode(['success' => true, 'message' => 'Statut mis à jour.']);
+        exit;
+    }
     header("Location: ../../orders.php");
     exit;
 }
 
 // Récupérer la commande
-$stmt = $pdo->prepare("SELECT * FROM orders WHERE id_order = ?");
+$stmt = $pdo->prepare("
+    SELECT orders.*, COALESCE(NULLIF(status, ''), 'En attente') AS status
+    FROM orders
+    WHERE id_order = ?
+");
 $stmt->execute([$id]);
 $order = $stmt->fetch();
 

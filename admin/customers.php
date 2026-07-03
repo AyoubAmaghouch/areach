@@ -21,7 +21,7 @@ SELECT
     COUNT(o.id_order) AS order_count,
     COALESCE(SUM(o.total), 0) AS total_spent
 FROM customers c
-LEFT JOIN orders o ON o.customer_name = c.nom AND o.customer_lastname = c.prenom
+LEFT JOIN orders o ON o.id_customer = c.id_customer
 GROUP BY c.id_customer, c.nom, c.prenom, c.email, c.telephone, c.newsletter, c.status, c.created_at
 ORDER BY c.id_customer DESC
 ");
@@ -65,7 +65,7 @@ include 'includes/header.php';
     </div>
 
     <div class="table-responsive">
-        <table class="admin-table">
+        <table class="table">
             <thead>
                 <tr>
                     <th style="width:50px;">ID</th>
@@ -138,18 +138,16 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <div class="table-actions justify-content-center">
-                                <a href="crud/customers/details.php?id=<?= (int)$customer['id_customer'] ?>"
-                                   class="btn-action view"
-                                   data-bs-toggle="tooltip" title="Voir le profil">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                                <a href="crud/customers/toggle-status.php?id=<?= (int)$customer['id_customer'] ?>"
-                                   class="btn-action toggle"
-                                   data-bs-toggle="tooltip" title="<?= $isActive ? 'Bloquer' : 'Activer' ?>">
-                                    <i class="fa-solid <?= $isActive ? 'fa-ban' : 'fa-check' ?>"></i>
-                                </a>
-                            </div>
+                            <a href="crud/customers/details.php?id=<?= (int)$customer['id_customer'] ?>"
+                               class="btn btn-sm btn-action view me-1"
+                               data-bs-toggle="tooltip" title="Voir le profil">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a href="crud/customers/toggle-status.php?id=<?= (int)$customer['id_customer'] ?>"
+                               class="btn btn-sm btn-action toggle"
+                               data-bs-toggle="tooltip" title="<?= $isActive ? 'Bloquer' : 'Activer' ?>">
+                                <i class="fa-solid <?= $isActive ? 'fa-ban' : 'fa-check' ?>"></i>
+                            </a>
                         </td>
 
                     </tr>

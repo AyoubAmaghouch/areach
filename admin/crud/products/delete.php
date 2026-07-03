@@ -9,11 +9,36 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../products.php");
+    $redirect = "../../products.php";
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        echo json_encode(['success' => false, 'message' => 'Produit introuvable.']);
+        exit;
+    }
+    header("Location: $redirect");
     exit;
 }
 
 $id = (int) $_GET['id'];
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+// Check if product is linked to any orders
+$stmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM order_items oi
+    INNER JOIN product_variants pv ON oi.id_variant = pv.id_variant
+    WHERE pv.id_product = ?
+");
+$stmt->execute([$id]);
+$orderCount = (int) $stmt->fetchColumn();
+
+if ($orderCount > 0) {
+    if ($isAjax) {
+        echo json_encode(['success' => false, 'message' => 'Ce produit ne peut pas être supprimé car il est lié à des commandes existantes.']);
+        exit;
+    }
+    header("Location: ../../products.php?error=has_orders");
+    exit;
+}
 
 try {
 
@@ -40,11 +65,33 @@ try {
     $stmt->execute([$id]);
 
     while ($image = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $filename = basename((string) $image['image']);
 
-        $path = "../../../assets/uploads/products/" . $image['image'];
+        if ($filename === '') {
+            continue;
+        }
 
-        if (file_exists($path)) {
-            unlink($path);
+        $paths = [
+            "../../../assets/uploads/products/" . $filename,
+            "../../../assets/images/products/" . $filename,
+        ];
+
+        $productRoot = "../../../assets/images/products";
+        if (is_dir($productRoot)) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($productRoot, FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $file) {
+                if ($file->isFile() && $file->getFilename() === $filename) {
+                    $paths[] = $file->getPathname();
+                }
+            }
+        }
+
+        foreach (array_unique($paths) as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
         }
     }
 
@@ -85,11 +132,19 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    // Redirect instead of die() to prevent broken layout
+    $msg = 'Erreur lors de la suppression du produit.';
+    if ($isAjax) {
+        echo json_encode(['success' => false, 'message' => $msg]);
+        exit;
+    }
     header("Location: ../../products.php?error=delete_failed");
     exit;
 
 }
 
+if ($isAjax) {
+    echo json_encode(['success' => true, 'message' => 'Produit supprimé avec succès.']);
+    exit;
+}
 header("Location: ../../products.php?success=deleted");
 exit;
