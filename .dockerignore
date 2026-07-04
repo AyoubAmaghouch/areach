@@ -1,0 +1,31 @@
+# Build artifacts / interpreter files
+.git
+.gitignore
+.gitattributes
+
+# Docker meta files (avoid recursive COPY loops)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Railway config (the builder still reads it via Railway, not the image)
+railway.json
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# PHP dependencies installed inside the container
+vendor/
+composer.lock
+
+# Runtime / caches
+*.log
+tmp/
+cache/
+node_modules/
+
+# OS junk
+.DS_Store
+Thumbs.db

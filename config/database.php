@@ -20,6 +20,16 @@ $db   = getenv('MYSQLDATABASE') ?: 'areach';
 $user = getenv('MYSQLUSER') ?: 'root';
 $pass = getenv('MYSQLPASSWORD') ?: '';
 
+/*
+ * Verify the required PHP extensions are loaded before attempting a
+ * connection. The "could not find driver" error on Railway is caused by the
+ * pdo_mysql / mysqli extensions missing from the image; abort early with a
+ * clear message instead of an opaque PDOException.
+ */
+if (!extension_loaded('pdo') || !extension_loaded('pdo_mysql')) {
+    die('Database Connection Failed: required PHP extension "pdo_mysql" is not loaded.');
+}
+
 try {
     $pdo = new PDO(
         "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4",
