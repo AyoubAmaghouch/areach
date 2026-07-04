@@ -5,22 +5,22 @@ declare(strict_types=1);
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
-<section class="hero-slider-section" aria-label="Bannières principales">
+<section class="hero-slider-section" aria-label="<?= t('hero_aria_label') ?>">
     <div class="swiper hero-swiper">
         <div class="swiper-wrapper">
             <div class="swiper-slide hero-slide">
                 <div class="container hero-slide__container">
                     <div class="hero-slide__content">
-                        <span class="hero-slide__label">Collection printemps</span>
-                        <h1 class="hero-slide__title">L'élégance au féminin</h1>
-                        <p class="hero-slide__subtitle">Découvrez notre nouvelle collection pensée pour sublimer votre style au quotidien.</p>
+                        <span class="hero-slide__label"><?= t('hero_slide1_label') ?></span>
+                        <h1 class="hero-slide__title"><?= t('hero_slide1_title') ?></h1>
+                        <p class="hero-slide__subtitle"><?= t('hero_slide1_subtitle') ?></p>
 
                         <div class="hero-slide__actions">
                             <a href="shop.php" class="btn btn--accent hero-slide__btn">
-                                Découvrir la collection
+                                <?= t('hero_slide1_btn_main') ?>
                             </a>
                             <a href="#nouveautes" class="btn btn--outline hero-slide__btn-secondary">
-                                Voir les nouveautés
+                                <?= t('hero_slide1_btn_sec') ?>
                             </a>
                         </div>
                     </div>
@@ -29,7 +29,7 @@ declare(strict_types=1);
                         <picture class="hero-slide__picture">
                             <img
                                 src="assets/images/hero/hero-1.jpg"
-                                alt="L'élégance au féminin"
+                                alt="<?= t('hero_slide1_title') ?>"
                                 class="hero-slide__image"
                                 width="1920"
                                 height="700"
@@ -44,16 +44,16 @@ declare(strict_types=1);
             <div class="swiper-slide hero-slide">
                 <div class="container hero-slide__container">
                     <div class="hero-slide__content">
-                        <span class="hero-slide__label">Collection Exclusive</span>
-                        <h1 class="hero-slide__title">Collection Exclusive</h1>
-                        <p class="hero-slide__subtitle">Des pièces élégantes conçues pour révéler votre style avec raffinement.</p>
+                        <span class="hero-slide__label"><?= t('hero_slide2_label') ?></span>
+                        <h1 class="hero-slide__title"><?= t('hero_slide2_title') ?></h1>
+                        <p class="hero-slide__subtitle"><?= t('hero_slide2_subtitle') ?></p>
 
                         <div class="hero-slide__actions">
                             <a href="shop.php" class="btn btn--accent hero-slide__btn">
-                                Acheter maintenant
+                                <?= t('hero_slide2_btn_main') ?>
                             </a>
                             <a href="#nouveautes" class="btn btn--outline hero-slide__btn-secondary">
-                                Voir les nouveautés
+                                <?= t('hero_slide2_btn_sec') ?>
                             </a>
                         </div>
                     </div>
@@ -62,7 +62,7 @@ declare(strict_types=1);
                         <picture class="hero-slide__picture">
                             <img
                                 src="assets/images/hero/hero-2.jpg"
-                                alt="Collection Exclusive"
+                                alt="<?= t('hero_slide2_title') ?>"
                                 class="hero-slide__image"
                                 width="1920"
                                 height="700"

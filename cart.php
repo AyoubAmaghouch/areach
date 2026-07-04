@@ -35,8 +35,8 @@ $freeDeliveryThreshold = (float) ($settings['free_delivery'] ?? 0);
 $shipping = $freeDeliveryThreshold > 0 && $subtotal >= $freeDeliveryThreshold ? 0.0 : $deliveryPrice;
 $total = $subtotal + $shipping;
 
-$pageTitle = ($settings['store_name'] ?: 'AREACH') . ' — Panier';
-$metaDescription = 'Votre panier chez ' . ($settings['store_name'] ?: 'AREACH');
+$pageTitle = ($settings['store_name'] ?: 'AREACH') . ' — ' . t('cart_page_title');
+$metaDescription = t('cart_meta', $settings['store_name'] ?: 'AREACH');
 
 include 'includes/header.php';
 include 'includes/topbar.php';
@@ -46,8 +46,8 @@ include 'includes/navbar.php';
 <main id="main-content" class="main-content">
     <section class="page-header">
         <div class="container">
-            <h1 class="page-header__title">Panier</h1>
-            <p class="page-header__subtitle">Vos articles sélectionnés</p>
+            <h1 class="page-header__title"><?= t('cart_title') ?></h1>
+            <p class="page-header__subtitle"><?= t('cart_subtitle') ?></p>
         </div>
     </section>
 
@@ -56,8 +56,8 @@ include 'includes/navbar.php';
             <?php if (empty($cartItems)) : ?>
                 <div class="page-empty">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
-                    <p>Votre panier est vide.</p>
-                    <a href="<?= pageUrl('shop.php') ?>" class="btn btn--accent">Continuer vos achats</a>
+                    <p><?= t('cart_empty') ?></p>
+                    <a href="<?= pageUrl('shop.php') ?>" class="btn btn--accent"><?= t('cart_continue') ?></a>
                 </div>
             <?php else : ?>
                 <div class="cart-layout">
@@ -74,36 +74,36 @@ include 'includes/navbar.php';
                                 </a>
                                 <div class="cart-item__body">
                                     <h2 class="cart-item__name"><a href="<?= productUrl((int) ($item['id_product'] ?? 0)) ?>"><?= e($item['name'] ?? '') ?></a></h2>
-                                    <?php if (!empty($item['color_name'])) : ?><p class="cart-item__meta">Couleur : <?= e($item['color_name']) ?></p><?php endif; ?>
-                                    <?php if (!empty($item['size'])) : ?><p class="cart-item__meta">Taille : <?= e($item['size']) ?></p><?php endif; ?>
-                                    <p class="cart-item__meta">Quantité : <?= (int) ($item['quantity'] ?? 1) ?></p>
+                                    <?php if (!empty($item['color_name'])) : ?><p class="cart-item__meta"><?= t('cart_color') ?> : <?= e($item['color_name']) ?></p><?php endif; ?>
+                                    <?php if (!empty($item['size'])) : ?><p class="cart-item__meta"><?= t('cart_size') ?> : <?= e($item['size']) ?></p><?php endif; ?>
+                                    <p class="cart-item__meta"><?= t('cart_quantity') ?> : <?= (int) ($item['quantity'] ?? 1) ?></p>
                                     <p class="cart-item__price"><?= e(formatCurrency((float) ($item['price'] ?? 0))) ?></p>
                                 </div>
                                 <form method="post" action="<?= pageUrl('cart.php') ?>" class="cart-item__actions">
                                     <input type="hidden" name="cart_action" value="update">
                                     <input type="hidden" name="cart_key" value="<?= e($key) ?>">
-                                    <label class="visually-hidden" for="quantity-<?= e($key) ?>">Quantité</label>
+                                    <label class="visually-hidden" for="quantity-<?= e($key) ?>"><?= t('cart_qty_label') ?></label>
                                     <input type="number" id="quantity-<?= e($key) ?>" name="quantity" class="input" min="1" max="10" value="<?= (int) ($item['quantity'] ?? 1) ?>">
-                                    <button type="submit" class="btn btn--outline">Mettre à jour</button>
+                                    <button type="submit" class="btn btn--outline"><?= t('cart_update') ?></button>
                                 </form>
                                 <form method="post" action="<?= pageUrl('cart.php') ?>" class="cart-item__remove">
                                     <input type="hidden" name="cart_action" value="remove">
                                     <input type="hidden" name="cart_key" value="<?= e($key) ?>">
-                                    <button type="submit" class="cart-item__remove-btn" aria-label="Supprimer"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                                    <button type="submit" class="cart-item__remove-btn" aria-label="<?= t('cart_remove') ?>"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
                                 </form>
                             </article>
                         <?php endforeach; ?>
                     </div>
 
                     <aside class="cart-summary">
-                        <h2 class="cart-summary__title">Récapitulatif</h2>
-                        <p class="cart-summary__row"><span>Sous-total</span><strong><?= e(formatCurrency($subtotal)) ?></strong></p>
-                        <p class="cart-summary__row"><span>Livraison</span><strong><?= e(formatCurrency($shipping)) ?></strong></p>
-                        <p class="cart-summary__row cart-summary__row--total"><span>Total</span><strong><?= e(formatCurrency($total)) ?></strong></p>
-                        <a href="<?= pageUrl('checkout.php') ?>" class="btn btn--primary cart-summary__checkout">Passer au paiement</a>
+                        <h2 class="cart-summary__title"><?= t('cart_summary_title') ?></h2>
+                        <p class="cart-summary__row"><span><?= t('cart_subtotal') ?></span><strong><?= e(formatCurrency($subtotal)) ?></strong></p>
+                        <p class="cart-summary__row"><span><?= t('cart_delivery') ?></span><strong><?= e(formatCurrency($shipping)) ?></strong></p>
+                        <p class="cart-summary__row cart-summary__row--total"><span><?= t('cart_total') ?></span><strong><?= e(formatCurrency($total)) ?></strong></p>
+                        <a href="<?= pageUrl('checkout.php') ?>" class="btn btn--primary cart-summary__checkout"><?= t('cart_checkout') ?></a>
                         <form method="post" action="<?= pageUrl('cart.php') ?>" class="cart-summary__clear">
                             <input type="hidden" name="cart_action" value="clear">
-                            <button type="submit" class="btn btn--outline">Vider le panier</button>
+                            <button type="submit" class="btn btn--outline"><?= t('cart_clear') ?></button>
                         </form>
                     </aside>
                 </div>

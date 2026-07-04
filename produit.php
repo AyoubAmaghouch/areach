@@ -82,10 +82,10 @@ include 'includes/navbar.php';
 <main id="main-content" class="main-content">
     <section class="page-section product-detail">
         <div class="container">
-            <nav class="breadcrumb" aria-label="Fil d'Ariane">
-                <a href="<?= pageUrl('index.php') ?>">Accueil</a>
+            <nav class="breadcrumb" aria-label="<?= t('product_breadcrumb_home') ?>">
+                <a href="<?= pageUrl('index.php') ?>"><?= t('product_breadcrumb_home') ?></a>
                 <span aria-hidden="true">/</span>
-                <a href="<?= pageUrl('shop.php') ?>">Boutique</a>
+                <a href="<?= pageUrl('shop.php') ?>"><?= t('product_breadcrumb_shop') ?></a>
                 <?php if (!empty($product['category_name'])) : ?>
                     <span aria-hidden="true">/</span>
                     <a href="<?= pageUrl('shop.php?category=' . (int) $product['id_category']) ?>">
@@ -122,7 +122,7 @@ include 'includes/navbar.php';
                     <h1 class="product-detail__title"><?= e($product['product_name']) ?></h1>
 
                     <?php if (!empty($product['reference'])) : ?>
-                        <p class="product-detail__reference">Réf. <?= e($product['reference']) ?></p>
+                        <p class="product-detail__reference"><?= t('product_ref') ?> <?= e($product['reference']) ?></p>
                     <?php endif; ?>
 
                     <div class="product-detail__price">
@@ -150,7 +150,7 @@ include 'includes/navbar.php';
 
                         <?php if (count($variants) > 1) : ?>
                             <div class="form-group">
-                                <label for="id_variant">Couleur</label>
+                                <label for="id_variant"><?= t('product_color') ?></label>
                                 <select name="id_variant" id="id_variant" class="input" required>
                                     <?php foreach ($variants as $variant) : ?>
                                         <option value="<?= (int) $variant['id_variant'] ?>">
@@ -165,7 +165,7 @@ include 'includes/navbar.php';
 
                         <?php if (!empty($defaultVariant['sizes'])) : ?>
                             <div class="form-group">
-                                <label for="size">Taille</label>
+                                <label for="size"><?= t('product_size') ?></label>
                                 <select name="size" id="size" class="input" required>
                                     <?php foreach ($defaultVariant['sizes'] as $size) : ?>
                                         <option value="<?= e($size) ?>"><?= e($size) ?></option>
@@ -177,13 +177,13 @@ include 'includes/navbar.php';
                         <?php endif; ?>
 
                         <div class="form-group">
-                            <label for="quantity">Quantité</label>
+                            <label for="quantity"><?= t('product_quantity') ?></label>
                             <input type="number" name="quantity" id="quantity" class="input" value="1" min="1" max="99" required>
                         </div>
 
                         <button type="submit" class="btn btn--accent product-detail__submit">
                             <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
-                            Ajouter au panier
+                            <?= t('product_add_to_cart') ?>
                         </button>
                     </form>
                 </div>

@@ -34,7 +34,7 @@ function areachNavActive(string $page, string $currentPage): string
                 </ul>
             </div>
 
-            <a href="<?= pageUrl('index.php') ?>" class="areach-brand" aria-label="<?= e($settings['store_name'] ?: 'AREACH') ?> — Accueil">
+            <a href="<?= pageUrl('index.php') ?>" class="areach-brand" aria-label="<?= e($settings['store_name'] ?: 'AREACH') ?> — <?= t('nav_home_aria') ?>">
                 <span class="areach-wordmark">AREACH</span>
                 <span class="areach-tagline">Elegant Luxury Defined</span>
             </a>

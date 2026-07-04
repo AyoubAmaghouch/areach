@@ -29,6 +29,6 @@ $htmlDir = strtolower($currentLang['direction'] ?? 'ltr') === 'rtl' ? 'rtl' : 'l
 
 <body<?= !empty($bodyClass) ? ' class="' . e($bodyClass) . '"' : '' ?>>
 
-<a class="skip-link" href="#main-content">Aller au contenu principal</a>
+<a class="skip-link" href="#main-content"><?= t('skip_to_content') ?></a>
 
 <div class="site-wrapper">

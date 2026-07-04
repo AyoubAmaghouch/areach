@@ -4,6 +4,23 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
+// If the cart is not empty, clear any completed checkout session state to start fresh
+$cartItems = getCartItems();
+if (!empty($cartItems)) {
+    $sessionOrderIdForCheck = (int) ($_SESSION['checkout_order_id'] ?? 0);
+    if ($sessionOrderIdForCheck > 0) {
+        $stmt = $pdo->prepare('SELECT status FROM orders WHERE id_order = ? LIMIT 1');
+        $stmt->execute([$sessionOrderIdForCheck]);
+        $orderCheck = $stmt->fetch();
+        $orderCheckStatus = (string) ($orderCheck['status'] ?? '');
+        if ($orderCheckStatus !== 'En attente' && $orderCheckStatus !== '') {
+            unset($_SESSION['checkout_order_id']);
+            unset($_SESSION['order_id']);
+            unset($_SESSION['checkout_confirm_token']);
+        }
+    }
+}
+
 function checkoutAvailableColumns(PDO $pdo, string $table): array
 {
     static $cache = [];
@@ -596,8 +613,14 @@ include 'includes/navbar.php';
         }
     }
 
-    function openWhatsapp(phone, message) {
+    function openWhatsapp(whatsappWindow, phone, message) {
+        if (!whatsappWindow) {
+            return;
+        }
         if (!phone || !message) {
+            try {
+                whatsappWindow.close();
+            } catch (e) {}
             return;
         }
 
@@ -618,10 +641,20 @@ include 'includes/navbar.php';
         });
         window.addEventListener('pagehide', markOpened, { once: true });
 
-        window.location.href = nativeUrl;
+        try {
+            whatsappWindow.location.href = nativeUrl;
+        } catch (e) {
+            try {
+                whatsappWindow.location.href = fallbackUrl;
+            } catch (err) {}
+            return;
+        }
+
         window.setTimeout(function () {
             if (!appOpened && !document.hidden) {
-                window.location.href = fallbackUrl;
+                try {
+                    whatsappWindow.location.href = fallbackUrl;
+                } catch (e) {}
             }
         }, 1600);
     }
@@ -630,6 +663,9 @@ include 'includes/navbar.php';
         if (locked) {
             return;
         }
+
+        // Open blank tab/window synchronously inside the user's click handler to prevent popup blocking
+        const whatsappWindow = window.open('', '_blank');
 
         locked = true;
         button.disabled = true;
@@ -666,8 +702,13 @@ include 'includes/navbar.php';
             }
 
             setStepDone(orderId);
-            openWhatsapp(button.dataset.phone || '', button.dataset.message || '');
+            openWhatsapp(whatsappWindow, button.dataset.phone || '', button.dataset.message || '');
         } catch (error) {
+            if (whatsappWindow) {
+                try {
+                    whatsappWindow.close();
+                } catch (e) {}
+            }
             locked = false;
             button.disabled = false;
             button.classList.remove('is-loading');
