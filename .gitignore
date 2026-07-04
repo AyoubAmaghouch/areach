@@ -1,0 +1,13 @@
+# Environment files (local secrets, Railway-style env vars)
+.env
+.env.*
+!.env.example
+
+# PHP dependencies
+vendor/
+composer.lock
+
+# Logs & runtime
+*.log
+tmp/
+cache/
