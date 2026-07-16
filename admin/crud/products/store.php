@@ -5,6 +5,11 @@ declare(strict_types=1);
 require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
+// Fix: keep PDO in exception mode in this entrypoint too. The database config
+// already does it, but setting it here makes this debugging file self-contained
+// on AwardSpace if another config is temporarily included during tests.
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
 if (!isset($_SESSION['admin_id'])) {
     header('Location: ../../login.php');
     exit;
@@ -17,22 +22,56 @@ function redirectWithMessage(string $message, string $type = 'success'): never
     exit;
 }
 
-function dumpQueryError(PDO $pdo, string $query, array $params = [], ?Throwable $exception = null): never
+function dumpQueryError(PDO $pdo, string $query, array $params = [], ?Throwable $exception = null, ?array $statementErrorInfo = null): never
 {
+    // Fix: show both the connection-level errorInfo() and, when available, the
+    // PDOStatement-level errorInfo(). MySQL often keeps the exact SQL error on
+    // the statement, while $pdo->errorInfo() can be empty after rollback.
     $errorInfo = $pdo->errorInfo();
     $message = $exception ? $exception->getMessage() : 'Unknown error';
     $file = $exception ? $exception->getFile() : __FILE__;
     $line = $exception ? $exception->getLine() : __LINE__;
 
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+
     echo '<pre>';
     echo 'SQL QUERY: ' . $query . PHP_EOL;
-    echo 'PARAMS: ' . json_encode($params, JSON_UNESCAPED_UNICODE) . PHP_EOL;
-    echo 'PDO ERROR INFO: ' . json_encode($errorInfo, JSON_UNESCAPED_UNICODE) . PHP_EOL;
+    echo 'PARAMS: ' . json_encode($params, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
+    echo 'PDO ERROR INFO: ' . json_encode($errorInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
+    echo 'STATEMENT ERROR INFO: ' . json_encode($statementErrorInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
+    echo 'EXCEPTION CLASS: ' . ($exception ? get_class($exception) : 'None') . PHP_EOL;
     echo 'EXCEPTION: ' . $message . PHP_EOL;
     echo 'FILE: ' . $file . PHP_EOL;
     echo 'LINE: ' . $line . PHP_EOL;
     echo '</pre>';
     exit;
+}
+
+function executeSql(PDO $pdo, string $query, array $params, array &$debugSql): PDOStatement
+{
+    // Fix: record the query before prepare(), not only before execute(). If a
+    // syntax error happens during native prepare on MySQL 8/AwardSpace, the
+    // debugger now reports the real failing statement.
+    $debugSql = [
+        'query' => $query,
+        'params' => $params,
+        'statement_error_info' => null,
+    ];
+
+    try {
+        $statement = $pdo->prepare($query);
+        $statement->execute($params);
+        $debugSql['statement_error_info'] = $statement->errorInfo();
+
+        return $statement;
+    } catch (Throwable $exception) {
+        if (isset($statement) && $statement instanceof PDOStatement) {
+            $debugSql['statement_error_info'] = $statement->errorInfo();
+        }
+
+        throw $exception;
+    }
 }
 
 function slugify(string $value): string
@@ -46,26 +85,54 @@ function slugify(string $value): string
 
 function createDirectory(string $path): void
 {
-    if (!is_dir($path) && !mkdir($path, 0777, true) && !is_dir($path)) {
-        throw new RuntimeException('Le dossier de tÃ©lÃ©chargement ne peut pas Ãªtre crÃ©Ã©.');
+    if (is_dir($path)) {
+        return;
+    }
+
+    // AwardSpace / shared hosting: 0777 is often blocked by suPHP / suEXEC.
+    // Use 0755 which is the highest safe permission on most shared hosts.
+    if (!@mkdir($path, 0755, true) && !is_dir($path)) {
+        $lastError = error_get_last();
+        $msg = $lastError['message'] ?? 'unknown mkdir failure';
+        error_log('Product creation: failed to create directory ' . $path . ' - ' . $msg);
+        throw new RuntimeException('Le dossier de téléchargement ne peut pas être créé.');
     }
 }
 
-function getLanguageId(PDO $pdo, string $code): int
+function getLanguageId(PDO $pdo, string $code, array &$debugSql): int
 {
-    $stmt = $pdo->prepare('SELECT id_language FROM languages WHERE code = ? LIMIT 1');
-    $stmt->execute([$code]);
+    $stmt = executeSql(
+        $pdo,
+        'SELECT id_language FROM languages WHERE code = ? LIMIT 1',
+        [$code],
+        $debugSql
+    );
     $language = $stmt->fetch();
 
     return (int) ($language['id_language'] ?? 0);
 }
 
-function columnExists(PDO $pdo, string $table, string $column): bool
+function columnExists(PDO $pdo, string $table, string $column, array &$debugSql): bool
 {
-    $stmt = $pdo->prepare('SHOW COLUMNS FROM ' . $table . ' LIKE ?');
-    $stmt->execute([$column]);
+    // Fix/root cause: the previous version used "SHOW COLUMNS FROM ... LIKE ?".
+    // With PDO::ATTR_EMULATE_PREPARES=false, some MySQL/AwardSpace setups reject
+    // placeholders in SHOW statements and raise SQLSTATE[42000] 1064. Because
+    // columnExists() did not update the debug query, the debugger falsely showed
+    // the previous INSERT INTO product_translations as the failing SQL.
+    // INFORMATION_SCHEMA is valid MySQL 8 SQL and safely supports placeholders.
+    $stmt = executeSql(
+        $pdo,
+        'SELECT COUNT(*) AS column_count
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?
+         LIMIT 1',
+        [$table, $column],
+        $debugSql
+    );
 
-    return (bool) $stmt->fetch();
+    return (int) ($stmt->fetch()['column_count'] ?? 0) > 0;
 }
 
 function validateImageFile(array $file, bool $required = true): array
@@ -123,7 +190,7 @@ function saveUploadedImage(array $file, string $baseDirectory, string $prefix, b
     $targetName = $prefix . '-' . $baseName . '-' . uniqid('', true) . '.' . $validated['extension'];
     $targetPath = $baseDirectory . '/' . $targetName;
     if (!move_uploaded_file($validated['tmp_name'], $targetPath)) {
-        throw new RuntimeException('Une image n\'a pas pu Ãªtre enregistrÃ©e.');
+        throw new RuntimeException('Une image n\'a pas pu être enregistrée.');
     }
 
     return $targetName;
@@ -132,6 +199,12 @@ function saveUploadedImage(array $file, string $baseDirectory, string $prefix, b
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirectWithMessage('La méthode de requête est invalide.', 'danger');
 }
+
+$debugSql = [
+    'query' => 'Aucune requête SQL exécutée',
+    'params' => [],
+    'statement_error_info' => null,
+];
 
 $name = trim((string) ($_POST['name'] ?? ''));
 $description = trim((string) ($_POST['description'] ?? ''));
@@ -164,54 +237,99 @@ if ($lowStockValue !== null && $lowStockValue < 0) {
     redirectWithMessage('L\'alerte de stock faible doit être positive.', 'danger');
 }
 
-$existingProduct = $pdo->prepare('SELECT id_product FROM products WHERE reference = ? LIMIT 1');
-$existingProduct->execute([$reference]);
-if ($existingProduct->fetch()) {
-    redirectWithMessage('Cette référence existe déjà.', 'danger');
-}
-
 $productId = 0;
-$languageId = getLanguageId($pdo, 'fr');
+$languageId = 0;
 $discountPercentage = null;
 $variantId = 0;
 $size = '';
 $colorName = '';
 $stockValue = 0;
 $mainImageName = null;
-if ($languageId === 0) {
-    redirectWithMessage('Langue par défaut introuvable.', 'danger');
-}
-
-$baseImageDirectory = __DIR__ . '/../../../assets/images/products/' . $idCategory;
-createDirectory($baseImageDirectory);
-
-$pdo->beginTransaction();
+$transactionStarted = false;
 
 try {
-    $productStatement = $pdo->prepare('INSERT INTO products (id_category, reference, status, created_at) VALUES (?, ?, ?, NOW())');
-    $productStatement->execute([$idCategory, $reference, $status]);
+    $existingProduct = executeSql(
+        $pdo,
+        'SELECT id_product FROM products WHERE reference = ? LIMIT 1',
+        [$reference],
+        $debugSql
+    );
+    if ($existingProduct->fetch()) {
+        redirectWithMessage('Cette référence existe déjà.', 'danger');
+    }
+
+    $languageId = getLanguageId($pdo, 'fr', $debugSql);
+    if ($languageId === 0) {
+        redirectWithMessage('Langue par défaut introuvable.', 'danger');
+    }
+
+    $baseImageDirectory = __DIR__ . '/../../../assets/images/products/' . $idCategory;
+    createDirectory($baseImageDirectory);
+
+    // Fix: beginTransaction() is inside try, so transaction errors are displayed
+    // by the same complete debugger instead of causing a blank/generic failure.
+    $pdo->beginTransaction();
+    $transactionStarted = true;
+
+    $productStatement = executeSql(
+        $pdo,
+        'INSERT INTO products (id_category, reference, status, created_at) VALUES (?, ?, ?, NOW())',
+        [$idCategory, $reference, $status],
+        $debugSql
+    );
     $productId = (int) $pdo->lastInsertId();
 
-    $translationStatement = $pdo->prepare('INSERT INTO product_translations (id_product, id_language, name, description) VALUES (?, ?, ?, ?)');
-    $translationStatement->execute([$productId, $languageId, $name, $description]);
+    // Fix: keep the fallback for AwardSpace imports where AUTO_INCREMENT was
+    // missing from products.id_product and PDO::lastInsertId() returned 0.
+    if ($productId <= 0) {
+        $stmt = executeSql(
+            $pdo,
+            'SELECT id_product FROM products WHERE reference = ? ORDER BY id_product DESC LIMIT 1',
+            [$reference],
+            $debugSql
+        );
+        $row = $stmt->fetch();
+        $productId = (int) ($row['id_product'] ?? 0);
+    }
 
-    $discountPercentage = null;
+    if ($productId <= 0) {
+        throw new RuntimeException('Unable to resolve the new product id for reference ' . $reference);
+    }
+
+    executeSql(
+        $pdo,
+        'INSERT INTO product_translations (id_product, id_language, name, description) VALUES (?, ?, ?, ?)',
+        [$productId, $languageId, $name, $description],
+        $debugSql
+    );
+
+    $discountPercentage = 0;
     if ($promotionValue !== null && $price > 0) {
         $discountPercentage = (int) round((($price - $promotionValue) / $price) * 100);
     }
 
-    if (columnExists($pdo, 'products', 'is_featured')) {
-        $pdo->prepare('UPDATE products SET is_featured = ? WHERE id_product = ?')->execute([$isFeatured, $productId]);
+    if (columnExists($pdo, 'products', 'is_featured', $debugSql)) {
+        executeSql(
+            $pdo,
+            'UPDATE products SET is_featured = ? WHERE id_product = ?',
+            [$isFeatured, $productId],
+            $debugSql
+        );
     }
 
-    if (columnExists($pdo, 'products', 'is_new_arrival')) {
-        $pdo->prepare('UPDATE products SET is_new_arrival = ? WHERE id_product = ?')->execute([$isNewArrival, $productId]);
+    if (columnExists($pdo, 'products', 'is_new_arrival', $debugSql)) {
+        executeSql(
+            $pdo,
+            'UPDATE products SET is_new_arrival = ? WHERE id_product = ?',
+            [$isNewArrival, $productId],
+            $debugSql
+        );
     }
 
     $variantGroups = $_POST['variant_colors'] ?? [];
     $variantGroups = is_array($variantGroups) ? $variantGroups : [];
     $createdVariants = 0;
-    $imageStatement = $pdo->prepare('INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, ?)');
+    $imageSqlQuery = 'INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, ?)';
 
     if (!empty($variantGroups)) {
         foreach ($variantGroups as $groupIndex => $groupData) {
@@ -234,27 +352,54 @@ try {
                 $variantStock += max(0, $stockValue);
             }
 
-            $variantStatement = $pdo->prepare('INSERT INTO product_variants (id_product, color_name, color_code, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 1)');
-            $variantStatement->execute([
-                $productId,
-                $colorName,
-                null,
-                number_format($price, 2, '.', ''),
-                $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''),
-                $discountPercentage,
-                $variantStock,
-            ]);
+            executeSql(
+                $pdo,
+                'INSERT INTO product_variants (id_product, color_name, color_code, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 1)',
+                [
+                    $productId,
+                    $colorName,
+                    '#000000',
+                    number_format($price, 2, '.', ''),
+                    $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''),
+                    $discountPercentage,
+                    $variantStock,
+                ],
+                $debugSql
+            );
             $variantId = (int) $pdo->lastInsertId();
-            $createdVariants++;
 
-            if (columnExists($pdo, 'product_variants', 'low_stock_alert')) {
-                $pdo->prepare('UPDATE product_variants SET low_stock_alert = ? WHERE id_variant = ?')->execute([$lowStockValue, $variantId]);
+            // Fix: same AUTO_INCREMENT-import fallback as products. This covers
+            // product_variants.id_variant before inserting sizes/images that
+            // depend on its foreign key.
+            if ($variantId <= 0) {
+                $stmt = executeSql(
+                    $pdo,
+                    'SELECT id_variant FROM product_variants WHERE id_product = ? ORDER BY id_variant DESC LIMIT 1',
+                    [$productId],
+                    $debugSql
+                );
+                $row = $stmt->fetch();
+                $variantId = (int) ($row['id_variant'] ?? 0);
             }
 
-            $sizeStatement = $pdo->prepare('INSERT INTO product_variant_sizes (id_variant, size) VALUES (?, ?)');
+            if ($variantId <= 0) {
+                throw new RuntimeException('Unable to resolve the new variant id for product ' . $productId);
+            }
+            $createdVariants++;
+
+            if (columnExists($pdo, 'product_variants', 'low_stock_alert', $debugSql)) {
+                executeSql(
+                    $pdo,
+                    'UPDATE product_variants SET low_stock_alert = ? WHERE id_variant = ?',
+                    [$lowStockValue, $variantId],
+                    $debugSql
+                );
+            }
+
+            $sizeSqlQuery = 'INSERT INTO product_variant_sizes (id_variant, size) VALUES (?, ?)';
             foreach ($sizes as $size) {
                 if ($size !== 'ONE SIZE') {
-                    $sizeStatement->execute([$variantId, $size]);
+                    executeSql($pdo, $sizeSqlQuery, [$variantId, $size], $debugSql);
                 }
             }
 
@@ -271,7 +416,7 @@ try {
             $hasPrimaryImage = false;
             $mainImageName = saveUploadedImage($mainImageFile, $baseImageDirectory, 'variant-main', false);
             if ($mainImageName !== null) {
-                $imageStatement->execute([$variantId, $mainImageName, 1]);
+                executeSql($pdo, $imageSqlQuery, [$variantId, $mainImageName, 1], $debugSql);
                 $hasPrimaryImage = true;
             }
 
@@ -295,7 +440,7 @@ try {
             foreach (array_slice($galleryFiles, 0, 5) as $galleryFile) {
                 $galleryImageName = saveUploadedImage($galleryFile, $baseImageDirectory, 'variant-gallery', false);
                 if ($galleryImageName !== null) {
-                    $imageStatement->execute([$variantId, $galleryImageName, $hasPrimaryImage ? 0 : 1]);
+                    executeSql($pdo, $imageSqlQuery, [$variantId, $galleryImageName, $hasPrimaryImage ? 0 : 1], $debugSql);
                     $hasPrimaryImage = true;
                 }
             }
@@ -303,17 +448,44 @@ try {
     }
 
     if ($createdVariants === 0) {
-        $variantStatement = $pdo->prepare('INSERT INTO product_variants (id_product, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, NULL, NULL, ?, ?, 1)');
-        $variantStatement->execute([$productId, number_format($price, 2, '.', ''), $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''), $discountPercentage, $stock]);
+        executeSql(
+            $pdo,
+            'INSERT INTO product_variants (id_product, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, NULL, NULL, ?, ?, 1)',
+            [$productId, number_format($price, 2, '.', ''), $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''), $discountPercentage, $stock],
+            $debugSql
+        );
         $variantId = (int) $pdo->lastInsertId();
 
-        if (columnExists($pdo, 'product_variants', 'low_stock_alert')) {
-            $pdo->prepare('UPDATE product_variants SET low_stock_alert = ? WHERE id_variant = ?')->execute([$lowStockValue, $variantId]);
+        // Fix: the original no-color/default-variant path used lastInsertId()
+        // without the AwardSpace fallback. If product_variants.id_variant had
+        // lost AUTO_INCREMENT, images and low_stock_alert updates used id 0.
+        if ($variantId <= 0) {
+            $stmt = executeSql(
+                $pdo,
+                'SELECT id_variant FROM product_variants WHERE id_product = ? ORDER BY id_variant DESC LIMIT 1',
+                [$productId],
+                $debugSql
+            );
+            $row = $stmt->fetch();
+            $variantId = (int) ($row['id_variant'] ?? 0);
+        }
+
+        if ($variantId <= 0) {
+            throw new RuntimeException('Unable to resolve the new default variant id for product ' . $productId);
+        }
+
+        if (columnExists($pdo, 'product_variants', 'low_stock_alert', $debugSql)) {
+            executeSql(
+                $pdo,
+                'UPDATE product_variants SET low_stock_alert = ? WHERE id_variant = ?',
+                [$lowStockValue, $variantId],
+                $debugSql
+            );
         }
 
         $mainImageName = saveUploadedImage($_FILES['main_image'] ?? [], $baseImageDirectory, 'main', false);
         if ($mainImageName !== null) {
-            $imageStatement->execute([$variantId, $mainImageName, 1]);
+            executeSql($pdo, $imageSqlQuery, [$variantId, $mainImageName, 1], $debugSql);
         }
 
         $galleryImages = [];
@@ -336,7 +508,7 @@ try {
             foreach ($galleryImages as $galleryFile) {
                 $galleryImageName = saveUploadedImage($galleryFile, $baseImageDirectory, 'gallery', false);
                 if ($galleryImageName !== null) {
-                    $imageStatement->execute([$variantId, $galleryImageName, $mainImageName === null ? 1 : 0]);
+                    executeSql($pdo, $imageSqlQuery, [$variantId, $galleryImageName, $mainImageName === null ? 1 : 0], $debugSql);
                     $mainImageName ??= $galleryImageName;
                 }
             }
@@ -344,32 +516,28 @@ try {
     }
 
     $pdo->commit();
+    $transactionStarted = false;
     redirectWithMessage('Produit enregistré avec succès.', 'success');
 } catch (Throwable $exception) {
-    if ($pdo->inTransaction()) {
+    if ($transactionStarted && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
 
-    $failedQuery = '';
-    $failedParams = [];
+    error_log(
+        get_class($exception) . ': ' . $exception->getMessage()
+        . ' in ' . $exception->getFile() . ' on line ' . $exception->getLine()
+    );
 
-    if (isset($productStatement)) {
-        $failedQuery = 'INSERT INTO products (id_category, reference, status, created_at) VALUES (?, ?, ?, NOW())';
-        $failedParams = [$idCategory, $reference, $status];
-    } elseif (isset($translationStatement)) {
-        $failedQuery = 'INSERT INTO product_translations (id_product, id_language, name, description) VALUES (?, ?, ?, ?)';
-        $failedParams = [$productId, $languageId, $name, $description];
-    } elseif (isset($variantStatement)) {
-        $failedQuery = 'INSERT INTO product_variants (id_product, color_name, color_code, price, promotion_price, promotion_start, promotion_end, discount_percentage, stock, status) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 1)';
-        $failedParams = [$productId, $colorName ?? null, null, number_format($price, 2, '.', ''), $promotionValue === null ? null : number_format($promotionValue, 2, '.', ''), $discountPercentage, $stockValue ?? 0];
-    } elseif (isset($sizeStatement)) {
-        $failedQuery = 'INSERT INTO product_variant_sizes (id_variant, size) VALUES (?, ?)';
-        $failedParams = [$variantId ?? null, $size ?? null];
-    } elseif (isset($imageStatement)) {
-        $failedQuery = 'INSERT INTO product_images (id_variant, image, is_primary) VALUES (?, ?, ?)';
-        $failedParams = [$variantId ?? null, $mainImageName ?? null, 1];
+    $pdoError = $pdo->errorInfo();
+    if (!empty($pdoError[2])) {
+        error_log('PDO errorInfo: ' . $pdoError[2]);
     }
 
-    error_log($exception->getMessage() . ' | ' . $failedQuery . ' | ' . json_encode($failedParams));
-    redirectWithMessage('Le produit n\'a pas pu Ãªtre enregistrÃ©.', 'error');
+    dumpQueryError(
+        $pdo,
+        $debugSql['query'] ?? 'Requête SQL inconnue',
+        $debugSql['params'] ?? [],
+        $exception,
+        $debugSql['statement_error_info'] ?? null
+    );
 }

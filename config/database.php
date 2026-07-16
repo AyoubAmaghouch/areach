@@ -1,31 +1,20 @@
 <?php
 /*
- * Railway-compatible database connection.
+ * AwardSpace production database configuration.
  *
- * Credentials are read from Railway's MySQL environment variables so the
- * same code works in local development and on Railway without changes.
- *  - MYSQLHOST     : database host (e.g. roundhouse.proxy.rlwy.net)
- *  - MYSQLPORT     : database port (e.g. 12345)
- *  - MYSQLDATABASE : database name
- *  - MYSQLUSER     : database user
- *  - MYSQLPASSWORD : database password
- *
- * Falls back to sensible defaults when a variable is not set (e.g. local dev),
- * using "127.0.0.1" with a non-empty port which avoids PDO URL warnings.
+ * Hosting details:
+ *   Host: fdb1029.awardspace.net
+ *   Port: 3306
+ *   DB:   4772751_areach
+ *   User: 4772751_areach
  */
 
-$host = getenv('MYSQLHOST') ?: '127.0.0.1';
-$port = getenv('MYSQLPORT') ?: '3306';
-$db   = getenv('MYSQLDATABASE') ?: 'areach';
-$user = getenv('MYSQLUSER') ?: 'root';
-$pass = getenv('MYSQLPASSWORD') ?: '';
+$host = 'fdb1029.awardspace.net';
+$port = '3306';
+$db   = '4772751_areach';
+$user = '4772751_areach';
+$pass = 'Kingfb12@';
 
-/*
- * Verify the required PHP extensions are loaded before attempting a
- * connection. The "could not find driver" error on Railway is caused by the
- * pdo_mysql / mysqli extensions missing from the image; abort early with a
- * clear message instead of an opaque PDOException.
- */
 if (!extension_loaded('pdo') || !extension_loaded('pdo_mysql')) {
     die('Database Connection Failed: required PHP extension "pdo_mysql" is not loaded.');
 }

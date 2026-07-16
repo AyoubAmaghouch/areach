@@ -23,6 +23,21 @@ if (!empty($cartItems)) {
 
 function checkoutAvailableColumns(PDO $pdo, string $table): array
 {
+    return array_keys(checkoutColumnMeta($pdo, $table));
+}
+
+/**
+ * Cached SHOW COLUMNS FROM `<table>` metadata.
+ * Returns an associative array keyed by column name; each entry holds:
+ *   - 'key'   : the value of the "Key" column ('PRI' for primary keys)
+ *   - 'extra' : lower-cased value of the "Extra" column (may contain 'auto_increment')
+ *
+ * Used by checkoutInsertAllowed() to detect the primary-key column so it can
+ * be excluded from INSERTs even when AUTO_INCREMENT is missing on the table
+ * (a known issue when a MySQL dump is imported with NO_AUTO_VALUE_ON_ZERO).
+ */
+function checkoutColumnMeta(PDO $pdo, string $table): array
+{
     static $cache = [];
 
     if (isset($cache[$table])) {
@@ -30,21 +45,59 @@ function checkoutAvailableColumns(PDO $pdo, string $table): array
     }
 
     $stmt = $pdo->query('SHOW COLUMNS FROM `' . $table . '`');
-    $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $cache[$table] = $columns;
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    return $columns;
+    $meta = [];
+    foreach ($rows as $row) {
+        $meta[(string) $row['Field']] = [
+            'key'   => (string) ($row['Key'] ?? ''),
+            'extra' => strtolower((string) ($row['Extra'] ?? '')),
+        ];
+    }
+
+    $cache[$table] = $meta;
+
+    return $meta;
+}
+
+/**
+ * Returns the single-column primary key of a table, or null when the table
+ * has a composite PK or no PK at all.
+ */
+function checkoutPrimaryKeyColumn(PDO $pdo, string $table): ?string
+{
+    $meta = checkoutColumnMeta($pdo, $table);
+
+    $priColumns = array_keys(array_filter(
+        $meta,
+        static fn (array $info): bool => ($info['key'] ?? '') === 'PRI'
+    ));
+
+    return count($priColumns) === 1 ? (string) $priColumns[0] : null;
 }
 
 function checkoutInsertAllowed(PDO $pdo, string $table, array $data): int
 {
     $columns = checkoutAvailableColumns($pdo, $table);
-    $filtered = [];
+    $primaryKey = checkoutPrimaryKeyColumn($pdo, $table);
 
+    $filtered = [];
     foreach ($data as $key => $value) {
-        if (in_array($key, $columns, true)) {
-            $filtered[$key] = $value;
+        if (!in_array($key, $columns, true)) {
+            // Column doesn't exist on this table — skip it (existing behaviour).
+            continue;
         }
+
+        // Defensive: never insert an explicit value into the auto-increment
+        // primary-key column, even if a caller accidentally passes one. This
+        // prevents "Duplicate entry '0' for key '<table>.PRIMARY'" when the
+        // PK column was imported without AUTO_INCREMENT after a schema
+        // dump/restore (the AwardSpace MySQL 8 import issue).
+        if ($key === $primaryKey) {
+            continue;
+        }
+
+        $filtered[$key] = $value;
     }
 
     if ($filtered === []) {
@@ -263,46 +316,47 @@ if (empty($_SESSION['checkout_confirm_token'])) {
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    $cartItemsForOrder = getCartItems();
-    if (empty($cartItemsForOrder)) {
-        redirect(pageUrl('cart.php'));
-    }
-
-    $firstName = trim((string) ($_POST['first_name'] ?? ''));
-    $lastName = trim((string) ($_POST['last_name'] ?? ''));
-    $customerEmail = trim((string) ($_POST['email'] ?? ''));
-    $customerPhone = trim((string) ($_POST['phone'] ?? ''));
-    $address = trim((string) ($_POST['address'] ?? ''));
-    $city = trim((string) ($_POST['city'] ?? ''));
-
-    if ($firstName === '' || $lastName === '' || $customerEmail === '' || $customerPhone === '' || $address === '' || $city === '') {
-        $_SESSION['checkout_error'] = t('checkout_required_error');
-        redirect(pageUrl('checkout.php'));
-    }
-
-    $customerId = 0;
-    if (!empty($_SESSION['customer']['id_customer'])) {
-        $customerId = (int) $_SESSION['customer']['id_customer'];
-    } else {
-        $stmt = $pdo->prepare('SELECT id_customer FROM customers WHERE email = ? LIMIT 1');
-        $stmt->execute([$customerEmail]);
-        $existing = $stmt->fetch();
-        if ($existing) {
-            $customerId = (int) $existing['id_customer'];
-        } else {
-            $customerId = checkoutInsertAllowed($pdo, 'customers', [
-                'nom' => $lastName,
-                'prenom' => $firstName,
-                'email' => $customerEmail,
-                'password' => password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT),
-                'newsletter' => 0,
-                'status' => 1,
-                'telephone' => $customerPhone,
-                'address' => $address,
-                'city' => $city,
-            ]);
+    try {
+        $cartItemsForOrder = getCartItems();
+        if (empty($cartItemsForOrder)) {
+            redirect(pageUrl('cart.php'));
         }
-    }
+
+        $firstName = trim((string) ($_POST['first_name'] ?? ''));
+        $lastName = trim((string) ($_POST['last_name'] ?? ''));
+        $customerEmail = trim((string) ($_POST['email'] ?? ''));
+        $customerPhone = trim((string) ($_POST['phone'] ?? ''));
+        $address = trim((string) ($_POST['address'] ?? ''));
+        $city = trim((string) ($_POST['city'] ?? ''));
+
+        if ($firstName === '' || $lastName === '' || $customerEmail === '' || $customerPhone === '' || $address === '' || $city === '') {
+            $_SESSION['checkout_error'] = t('checkout_required_error');
+            redirect(pageUrl('checkout.php'));
+        }
+
+        $customerId = 0;
+        if (!empty($_SESSION['customer']['id_customer'])) {
+            $customerId = (int) $_SESSION['customer']['id_customer'];
+        } else {
+            $stmt = $pdo->prepare('SELECT id_customer FROM customers WHERE email = ? LIMIT 1');
+            $stmt->execute([$customerEmail]);
+            $existing = $stmt->fetch();
+            if ($existing) {
+                $customerId = (int) $existing['id_customer'];
+            } else {
+                $customerId = checkoutInsertAllowed($pdo, 'customers', [
+                    'nom' => $lastName,
+                    'prenom' => $firstName,
+                    'email' => $customerEmail,
+                    'password' => password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT),
+                    'newsletter' => 0,
+                    'status' => 1,
+                    'telephone' => $customerPhone,
+                    'address' => $address,
+                    'city' => $city,
+                ]);
+            }
+        }
 
     $subtotal = getCartTotal();
     $deliveryPrice = (float) ($settings['delivery_price'] ?? 0);
@@ -310,22 +364,59 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $shipping = $freeDeliveryThreshold > 0 && $subtotal >= $freeDeliveryThreshold ? 0.0 : $deliveryPrice;
     $total = $subtotal + $shipping;
 
-    $orderId = checkoutInsertAllowed($pdo, 'orders', [
-        'order_number' => 'CMD-' . date('Ymd-His') . '-' . random_int(100, 999),
-        'id_customer' => $customerId,
-        'customer_name' => $firstName,
-        'customer_lastname' => $lastName,
-        'email' => $customerEmail,
-        'telephone' => $customerPhone,
-        'address' => $address,
-        'city' => $city,
-        'notes' => '',
-        'total' => $total,
-        'status' => 'En attente',
-        'created_at' => date('Y-m-d H:i:s'),
-    ]);
+    // Order number must be generated BEFORE the INSERT so that, if PDO's
+    // lastInsertId() returns 0 (because the `orders` table is missing the
+    // AUTO_INCREMENT attribute after the dump/restore), we can still recover
+    // the real id of the just-inserted order by re-reading it via its
+    // unique order_number. This keeps checkout working even on a partially
+    // imported schema, while the SQL migration restores AUTO_INCREMENT.
+    $orderNumber = 'CMD-' . date('Ymd-His') . '-' . random_int(100, 999);
 
-    if ($orderId > 0) {
+    $pdo->beginTransaction();
+    try {
+        // Insert into `orders`. checkoutInsertAllowed() defensively omits
+        // the PK column from the column list, so MySQL uses its default.
+        $orderId = checkoutInsertAllowed($pdo, 'orders', [
+            'order_number' => $orderNumber,
+            'id_customer' => $customerId,
+            'customer_name' => $firstName,
+            'customer_lastname' => $lastName,
+            'email' => $customerEmail,
+            'telephone' => $customerPhone,
+            'address' => $address,
+            'city' => $city,
+            'notes' => '',
+            'total' => $total,
+            'status' => 'En attente',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        // PDO::lastInsertId() returns 0 when the underlying column has no
+        // AUTO_INCREMENT (a known import-from-dump issue on AwardSpace).
+        // Recover the real id by reading the row back via its unique
+        // order_number — without this, the "if ($orderId > 0)" check below
+        // would silently misfire and the order would be orphaned in the DB
+        // while the visitor sees an error.
+        if ($orderId <= 0) {
+            $stmt = $pdo->prepare('SELECT id_order FROM orders WHERE order_number = ? ORDER BY id_order DESC LIMIT 1');
+            $stmt->execute([$orderNumber]);
+            $row = $stmt->fetch();
+            $orderId = (int) ($row['id_order'] ?? 0);
+        }
+
+        if ($orderId <= 0) {
+            // Still no id — surface as a recoverable error and roll back so
+            // the order row is NOT left orphaned in the database.
+            throw new RuntimeException('Unable to resolve the new order id for order ' . $orderNumber);
+        }
+
+        // Insert every cart line as an order_items row. If the
+        // `order_items.id_item` column is missing AUTO_INCREMENT (the known
+        // import issue), the FIRST row may succeed but the SECOND row will
+        // throw "Duplicate entry '0' for key 'PRIMARY'". Catching that here
+        // and rolling back the transaction guarantees no partial order is
+        // persisted — the user re-submits and we re-attempt atomically.
+        // The permanent fix is the SQL migration that restores AUTO_INCREMENT.
         foreach ($cartItemsForOrder as $item) {
             checkoutInsertAllowed($pdo, 'order_items', [
                 'id_order' => $orderId,
@@ -336,14 +427,33 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             ]);
         }
 
-        clearCart();
-        $_SESSION['order_id'] = $orderId;
-        $_SESSION['checkout_order_id'] = $orderId;
-        redirect(pageUrl('checkout.php?step=confirm&order=' . $orderId));
+        $pdo->commit();
+    } catch (Throwable $innerException) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        // Re-throw so the outer catch (which logs to error_log + shows the
+        // user-friendly message) handles the response uniformly.
+        throw $innerException;
     }
 
+    clearCart();
+    $_SESSION['order_id'] = $orderId;
+    $_SESSION['checkout_order_id'] = $orderId;
+    redirect(pageUrl('checkout.php?step=confirm&order=' . $orderId));
+} catch (Throwable $exception) {
+    // Log the real exception server-side only — never expose PDO
+    // exceptions or stack traces to the visitor in production.
+    error_log(
+        'Checkout failed: ' . get_class($exception) . ': '
+        . $exception->getMessage() . ' in ' . $exception->getFile()
+        . ' on line ' . $exception->getLine()
+    );
+
+    // Preserve the existing user-friendly error flow.
     $_SESSION['checkout_error'] = t('checkout_save_error');
     redirect(pageUrl('checkout.php'));
+}
 }
 
 $requestedStep = (string) ($_GET['step'] ?? 'info');
