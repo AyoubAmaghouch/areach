@@ -19,6 +19,9 @@ $htmlDir = strtolower($currentLang['direction'] ?? 'ltr') === 'rtl' ? 'rtl' : 'l
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="<?= e($metaDescription) ?>">
     <title><?= e($pageTitle) ?></title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon.png?v=1">
+    <link rel="shortcut icon" href="/assets/images/favicon.png?v=1">
+    <link rel="apple-touch-icon" href="/assets/images/favicon.png?v=1">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
