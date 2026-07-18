@@ -13,7 +13,7 @@ if (!isset($languages) || !is_array($languages)) {
 }
 
 if (!isset($currentLang) || !is_array($currentLang)) {
-    $currentLang = ['code' => 'fr', 'direction' => 'ltr'];
+    $currentLang = ['code' => 'en', 'direction' => 'ltr'];
 }
 
 $cartCount = getCartCount();
@@ -44,7 +44,7 @@ function areachNavActive(string $page, string $currentPage): string
                     <div class="areach-navbar__lang" id="language-dropdown">
                         <button type="button" class="areach-navbar__lang-toggle" id="language-toggle" aria-expanded="false" aria-haspopup="listbox" aria-controls="language-list">
                             <img src="<?= asset('images/logo/logo.png') ?>" alt="" width="18" height="18" class="areach-navbar__lang-icon" aria-hidden="true">
-                            <span class="areach-navbar__lang-code"><?= e(strtoupper((string) ($currentLang['code'] ?? 'fr'))) ?></span>
+                            <span class="areach-navbar__lang-code"><?= e(strtoupper((string) ($currentLang['code'] ?? 'en'))) ?></span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="areach-navbar__lang-chevron" aria-hidden="true">
                                 <polyline points="6 9 12 15 18 9"/>
                             </svg>
@@ -52,7 +52,7 @@ function areachNavActive(string $page, string $currentPage): string
                         <ul class="areach-navbar__lang-list" id="language-list" role="listbox" aria-label="<?= t('nav_choose_lang') ?>">
                             <?php foreach ($languages as $language) : ?>
                                 <li role="option" aria-selected="<?= ($language['code'] ?? '') === ($currentLang['code'] ?? '') ? 'true' : 'false' ?>">
-                                    <a href="<?= e(languageSwitchUrl((string) ($language['code'] ?? 'fr'))) ?>" class="areach-navbar__lang-option<?= (($language['code'] ?? '') === ($currentLang['code'] ?? '')) ? ' is-active' : '' ?>" lang="<?= e((string) ($language['code'] ?? '')) ?>">
+                                    <a href="<?= e(languageSwitchUrl((string) ($language['code'] ?? 'en'))) ?>" class="areach-navbar__lang-option<?= (($language['code'] ?? '') === ($currentLang['code'] ?? '')) ? ' is-active' : '' ?>" lang="<?= e((string) ($language['code'] ?? '')) ?>">
                                         <?= e((string) ($language['name'] ?? '')) ?>
                                     </a>
                                 </li>

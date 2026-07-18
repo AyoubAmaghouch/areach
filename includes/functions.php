@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 /**
  * Translation helper — loads the language file for the current language
- * and returns the translated string. Falls back to French, then to the key.
+ * and returns the translated string. Falls back to English, then to the key.
  *
  * Usage:  t('shop_title')
  *         t('shop_results', 5)   — passes args to sprintf
@@ -19,7 +19,7 @@ function t(string $key, mixed ...$args): string
     static $loadedCode   = null;
 
     // Determine the current language code from session / globals
-    $code = 'fr';
+    $code = 'en';
     if (isset($GLOBALS['langCode']) && is_string($GLOBALS['langCode']) && $GLOBALS['langCode'] !== '') {
         $code = $GLOBALS['langCode'];
     } elseif (isset($_SESSION['lang']) && is_string($_SESSION['lang']) && $_SESSION['lang'] !== '') {
@@ -32,7 +32,7 @@ function t(string $key, mixed ...$args): string
         if (file_exists($langFile)) {
             $translations = require $langFile;
         } else {
-            $fallback = __DIR__ . '/../languages/fr.php';
+            $fallback = __DIR__ . '/../languages/en.php';
             $translations = file_exists($fallback) ? require $fallback : [];
         }
         $loadedCode = $code;
@@ -158,6 +158,7 @@ function getCurrentLanguage(PDO $pdo): array
 {
     $languages = getActiveLanguages($pdo);
     $codes = array_column($languages, 'code');
+    $defaultCode = 'en';
 
     if (isset($_GET['lang'])) {
         $requested = strtolower(trim((string) $_GET['lang']));
@@ -167,10 +168,11 @@ function getCurrentLanguage(PDO $pdo): array
         }
     }
 
-    $currentCode = $_SESSION['lang'] ?? 'fr';
+    $currentCode = $_SESSION['lang'] ?? $defaultCode;
 
     if (!in_array($currentCode, $codes, true)) {
-        $currentCode = $codes[0] ?? 'fr';
+        $currentCode = $defaultCode;
+        $_SESSION['lang'] = $defaultCode;
     }
 
     foreach ($languages as $language) {
@@ -180,9 +182,9 @@ function getCurrentLanguage(PDO $pdo): array
     }
 
     return [
-        'id_language' => 1,
-        'code' => 'fr',
-        'name' => 'Français',
+        'id_language' => 2,
+        'code' => 'en',
+        'name' => 'English',
         'direction' => 'LTR',
     ];
 }
