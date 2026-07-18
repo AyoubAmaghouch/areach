@@ -27,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['admin_name']  = $admin['nom'];
             $_SESSION['admin_email'] = $admin['email'];
 
-            header("Location: dashboard.php");
+            header("Location: dashboard");
             exit;
 
         } else {

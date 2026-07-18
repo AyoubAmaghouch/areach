@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -85,7 +85,7 @@ include 'includes/header.php';
         </h1>
         <p class="page-subtitle"><?= count($products) ?> produit<?= count($products) !== 1 ? 's' : '' ?> au total</p>
     </div>
-    <a href="crud/products/create.php" class="btn-primary-admin">
+    <a href="crud/products/create" class="btn-primary-admin">
         <i class="fa-solid fa-plus"></i> Ajouter un produit
     </a>
 </div>
@@ -180,7 +180,7 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <a href="crud/products/edit.php?id=<?= (int)$product['id_product'] ?>"
+                            <a href="crud/products/edit?id=<?= (int)$product['id_product'] ?>"
                                class="btn btn-sm btn-action edit me-1"
                                data-bs-toggle="tooltip" title="Modifier">
                                 <i class="fa-solid fa-pen"></i>

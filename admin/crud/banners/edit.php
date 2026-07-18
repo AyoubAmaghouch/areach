@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../banners.php");
+    header("Location: ../../banners");
     exit;
 }
 
@@ -42,7 +42,7 @@ $mobileImg  = adminImagePath('banners', $banner['mobile_image']);
         </h1>
         <p class="page-subtitle"><?= htmlspecialchars($banner['title'] ?? '') ?></p>
     </div>
-    <a href="../../banners.php" class="btn btn-outline-secondary btn-sm">
+    <a href="../../banners" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-arrow-left me-1"></i> Retour
     </a>
 </div>
@@ -56,7 +56,7 @@ $mobileImg  = adminImagePath('banners', $banner['mobile_image']);
                 <h3>Détails de la bannière</h3>
             </div>
             <div class="form-card-body">
-                <form action="update.php" method="POST" enctype="multipart/form-data">
+                <form action="update" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="id_banner" value="<?= $banner['id_banner'] ?>">
 
                     <div class="row g-3">
@@ -122,7 +122,7 @@ $mobileImg  = adminImagePath('banners', $banner['mobile_image']);
                         <button type="submit" class="btn-primary-admin">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
-                        <a href="../../banners.php" class="btn btn-outline-secondary">
+                        <a href="../../banners" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>
@@ -159,7 +159,7 @@ $mobileImg  = adminImagePath('banners', $banner['mobile_image']);
             </div>
             <div class="modal-footer border-0 justify-content-end gap-2">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete.php?id=<?= $id ?>">
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete?id=<?= $id ?>">
                     <i class="fa-solid fa-trash me-1"></i> Supprimer
                 </button>
             </div>
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 showToast('success', data.message);
                 setTimeout(function() {
-                    window.location.href = '../../banners.php';
+                    window.location.href = '../../banners';
                 }, 2000);
             } else {
                 showToast('error', data.message);

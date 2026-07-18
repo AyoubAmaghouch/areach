@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -18,7 +18,7 @@ if ($id > 0) {
 
     if (!$campaign) {
         $_SESSION['campaign_flash'] = ['type' => 'error', 'message' => 'Campagne introuvable.'];
-        header("Location: ../../campaigns.php");
+        header("Location: ../../campaigns");
         exit;
     }
 }
@@ -34,7 +34,7 @@ include '../../includes/header.php';
         </h1>
         <p class="page-subtitle"><?= htmlspecialchars($campaign['subject'] ?? 'Nouvelle campagne') ?></p>
     </div>
-    <a href="../../campaigns.php" class="btn btn-outline-secondary btn-sm">
+    <a href="../../campaigns" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-arrow-left me-1"></i> Retour
     </a>
 </div>
@@ -47,7 +47,7 @@ include '../../includes/header.php';
                 <h3>Details de la campagne</h3>
             </div>
             <div class="form-card-body">
-                <form action="send.php" method="POST" enctype="multipart/form-data">
+                <form action="send" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="id_campaign" value="<?= (int) ($campaign['id_campaign'] ?? 0) ?>">
 
                     <div class="row g-3">
@@ -84,7 +84,7 @@ include '../../includes/header.php';
                         <button type="submit" class="btn-primary-admin">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
-                        <a href="../../campaigns.php" class="btn btn-outline-secondary">
+                        <a href="../../campaigns" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>
@@ -124,7 +124,7 @@ include '../../includes/header.php';
             </div>
             <div class="modal-footer border-0 justify-content-end gap-2">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete.php?id=<?= (int) $campaign['id_campaign'] ?>">
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete?id=<?= (int) $campaign['id_campaign'] ?>">
                     <i class="fa-solid fa-trash me-1"></i> Supprimer
                 </button>
             </div>
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 showToast('success', data.message);
                 setTimeout(function() {
-                    window.location.href = '../../campaigns.php';
+                    window.location.href = '../../campaigns';
                 }, 2000);
             } else {
                 showToast('error', data.message);

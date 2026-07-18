@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -16,7 +16,7 @@ if ($id < 1) {
         echo json_encode(['success' => false, 'message' => 'Notification introuvable.']);
         exit;
     }
-    header("Location: ../../notifications.php");
+    header("Location: ../../notifications");
     exit;
 }
 
@@ -37,5 +37,5 @@ try {
     $_SESSION['notification_flash'] = ['type' => 'error', 'message' => 'Erreur lors de la suppression.'];
 }
 
-header("Location: ../../notifications.php");
+header("Location: ../../notifications");
 exit;

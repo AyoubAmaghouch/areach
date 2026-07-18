@@ -11,14 +11,14 @@ require_once '../../../config/database.php';
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
 function redirectWithMessage(string $message, string $type = 'success'): never
 {
     $_SESSION['product_flash'] = ['message' => $message, 'type' => $type];
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 

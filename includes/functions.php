@@ -61,7 +61,7 @@ function translateSize(string $size): string
 
 function baseUrl(): string
 {
-    return '';
+    return '/';
 }
 
 function asset(string $path): string
@@ -78,7 +78,7 @@ function pageUrl(string $path = ''): string
     $path = str_replace('\\', '/', trim((string) $path));
 
     if ($path === '') {
-        return '';
+        return '/';
     }
 
     if (preg_match('#^(https?:)?//#i', $path) === 1) {
@@ -90,8 +90,29 @@ function pageUrl(string $path = ''): string
     }
 
     $path = ltrim($path, '/');
+    $fragment = '';
+    $query = '';
 
-    return str_replace(' ', '%20', preg_replace('#/+#', '/', $path));
+    if (($fragmentPosition = strpos($path, '#')) !== false) {
+        $fragment = substr($path, $fragmentPosition);
+        $path = substr($path, 0, $fragmentPosition);
+    }
+
+    if (($queryPosition = strpos($path, '?')) !== false) {
+        $query = substr($path, $queryPosition);
+        $path = substr($path, 0, $queryPosition);
+    }
+
+    if ($path === 'index.php' || $path === 'index') {
+        $path = '';
+    } elseif (str_ends_with($path, '.php')) {
+        $path = substr($path, 0, -4);
+    }
+
+    $url = '/' . ltrim($path, '/');
+    $url = preg_replace('#/+#', '/', $url) ?? $url;
+
+    return str_replace(' ', '%20', $url . $query . $fragment);
 }
 
 function e(?string $value): string

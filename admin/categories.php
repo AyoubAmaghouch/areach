@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -48,7 +48,7 @@ include 'includes/header.php';
         </h1>
         <p class="page-subtitle"><?= count($categories) ?> catégorie<?= count($categories) !== 1 ? 's' : '' ?> au total</p>
     </div>
-    <a href="crud/categories/create.php" class="btn-primary-admin">
+    <a href="crud/categories/create" class="btn-primary-admin">
         <i class="fa-solid fa-plus"></i> Ajouter une catégorie
     </a>
 </div>
@@ -124,7 +124,7 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <a href="crud/categories/edit.php?id=<?= (int)$category['id_category'] ?>"
+                            <a href="crud/categories/edit?id=<?= (int)$category['id_category'] ?>"
                                class="btn btn-sm btn-action edit me-1"
                                data-bs-toggle="tooltip" title="Modifier">
                                 <i class="fa-solid fa-pen"></i>

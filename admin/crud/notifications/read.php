@@ -4,14 +4,14 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 function redirectNotification(string $message, string $type = 'success'): never
 {
     $_SESSION['notification_flash'] = ['message' => $message, 'type' => $type];
-    header("Location: ../../notifications.php");
+    header("Location: ../../notifications");
     exit;
 }
 
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
 $id = (int) ($_GET['id'] ?? 0);
 
 if ($id < 1) {
-    header("Location: ../../notifications.php");
+    header("Location: ../../notifications");
     exit;
 }
 

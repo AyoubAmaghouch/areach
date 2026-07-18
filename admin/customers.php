@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -138,12 +138,12 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <a href="crud/customers/details.php?id=<?= (int)$customer['id_customer'] ?>"
+                            <a href="crud/customers/details?id=<?= (int)$customer['id_customer'] ?>"
                                class="btn btn-sm btn-action view me-1"
                                data-bs-toggle="tooltip" title="Voir le profil">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
-                            <a href="crud/customers/toggle-status.php?id=<?= (int)$customer['id_customer'] ?>"
+                            <a href="crud/customers/toggle-status?id=<?= (int)$customer['id_customer'] ?>"
                                class="btn btn-sm btn-action toggle"
                                data-bs-toggle="tooltip" title="<?= $isActive ? 'Bloquer' : 'Activer' ?>">
                                 <i class="fa-solid <?= $isActive ? 'fa-ban' : 'fa-check' ?>"></i>

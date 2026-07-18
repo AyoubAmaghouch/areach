@@ -4,14 +4,14 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 function redirectBanner(string $message, string $type = 'success'): never
 {
     $_SESSION['banner_flash'] = ['message' => $message, 'type' => $type];
-    header("Location: ../../banners.php");
+    header("Location: ../../banners");
     exit;
 }
 
@@ -56,7 +56,7 @@ function bannerUpload(string $field, string $current): string
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../../banners.php");
+    header("Location: ../../banners");
     exit;
 }
 

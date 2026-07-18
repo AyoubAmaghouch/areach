@@ -4,19 +4,19 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 function redirectCategoryStore(string $message, string $type = 'success'): never
 {
     $_SESSION['category_flash'] = ['message' => $message, 'type' => $type];
-    header("Location: ../../categories.php");
+    header("Location: ../../categories");
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../../categories.php");
+    header("Location: ../../categories");
     exit;
 }
 

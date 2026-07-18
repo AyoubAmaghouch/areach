@@ -6,14 +6,14 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
 function redirectWithMessage(string $message, string $type = 'success'): never
 {
     $_SESSION['product_flash'] = ['message' => $message, 'type' => $type];
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 

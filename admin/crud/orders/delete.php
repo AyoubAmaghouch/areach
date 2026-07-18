@@ -6,18 +6,18 @@ require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../../orders.php');
+    header('Location: ../../orders');
     exit;
 }
 
 $idOrder = filter_input(INPUT_POST, 'id_order', FILTER_VALIDATE_INT);
 if ($idOrder === false || $idOrder === null || $idOrder <= 0) {
-    header('Location: ../../orders.php?error=1');
+    header('Location: ../../orders?error=1');
     exit;
 }
 
@@ -32,16 +32,16 @@ try {
 
     if ($stmtOrder->rowCount() === 0) {
         $pdo->rollBack();
-        header('Location: ../../orders.php?error=1');
+        header('Location: ../../orders?error=1');
         exit;
     }
 
     $pdo->commit();
-    header('Location: ../../orders.php?deleted=1');
+    header('Location: ../../orders?deleted=1');
     exit;
 
 } catch (PDOException $e) {
     $pdo->rollBack();
-    header('Location: ../../orders.php?error=1');
+    header('Location: ../../orders?error=1');
     exit;
 }

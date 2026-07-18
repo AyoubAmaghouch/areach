@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -34,7 +34,7 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
-<form action="crud/settings.php/update.php" method="POST" enctype="multipart/form-data">
+<form action="crud/settings/update" method="POST" enctype="multipart/form-data">
 
     <div class="row g-4">
 

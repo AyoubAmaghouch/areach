@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -49,7 +49,7 @@ include 'includes/header.php';
                 <h3><?= $editNotification ? 'Modifier' : 'Ajouter' ?></h3>
             </div>
             <div class="form-card-body">
-                <form action="crud/notifications/read.php" method="POST">
+                <form action="crud/notifications/read" method="POST">
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="id_notification" value="<?= (int) ($editNotification['id_notification'] ?? 0) ?>">
 
@@ -77,7 +77,7 @@ include 'includes/header.php';
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
                         <?php if ($editNotification): ?>
-                            <a href="notifications.php" class="btn btn-outline-secondary">
+                            <a href="notifications" class="btn btn-outline-secondary">
                                 <i class="fa-solid fa-xmark me-1"></i> Annuler
                             </a>
                         <?php endif; ?>
@@ -144,10 +144,10 @@ include 'includes/header.php';
                                     </td>
                                     <td class="text-muted"><?= htmlspecialchars(substr($notification['created_at'] ?? '', 0, 10)) ?></td>
                                     <td>
-                                        <a href="notifications.php?edit=<?= (int) $notification['id_notification'] ?>" class="btn btn-sm btn-action edit me-1" data-bs-toggle="tooltip" title="Modifier">
+                                        <a href="notifications?edit=<?= (int) $notification['id_notification'] ?>" class="btn btn-sm btn-action edit me-1" data-bs-toggle="tooltip" title="Modifier">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <a href="crud/notifications/read.php?id=<?= (int) $notification['id_notification'] ?>" class="btn btn-sm btn-action view me-1" data-bs-toggle="tooltip" title="Marquer lue">
+                                        <a href="crud/notifications/read?id=<?= (int) $notification['id_notification'] ?>" class="btn btn-sm btn-action view me-1" data-bs-toggle="tooltip" title="Marquer lue">
                                             <i class="fa-solid fa-check"></i>
                                         </a>
 
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     showToast('success', data.message);
                     setTimeout(function() {
-                        window.location.href = 'notifications.php';
+                        window.location.href = 'notifications';
                     }, 2000);
                 } else {
                     showToast('error', data.message);

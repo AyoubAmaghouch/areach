@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -214,12 +214,12 @@ include 'includes/header.php';
                         </td>
 
                         <td>
-                            <a href="crud/orders/details.php?id=<?= (int)$order['id_order'] ?>"
+                            <a href="crud/orders/details?id=<?= (int)$order['id_order'] ?>"
                                class="btn btn-sm btn-action view me-1"
                                data-bs-toggle="tooltip" title="Voir les détails">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
-                            <a href="crud/orders/update-status.php?id=<?= (int)$order['id_order'] ?>"
+                            <a href="crud/orders/update-status?id=<?= (int)$order['id_order'] ?>"
                                class="btn btn-sm btn-action edit me-1"
                                data-bs-toggle="tooltip" title="Changer le statut">
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -241,7 +241,7 @@ include 'includes/header.php';
                             <button type="button"
                                     class="btn btn-sm btn-action print"
                                     data-bs-toggle="tooltip" title="Imprimer"
-                                    onclick="window.open('crud/orders/details.php?id=<?= (int)$order['id_order'] ?>&print=1','_blank')">
+                                    onclick="window.open('crud/orders/details?id=<?= (int)$order['id_order'] ?>&print=1','_blank')">
                                 <i class="fa-solid fa-print"></i>
                             </button>
                             <button type="button"
@@ -287,7 +287,7 @@ include 'includes/header.php';
             </div>
             <div class="modal-footer border-0 justify-content-center pb-4 gap-3">
                 <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Annuler</button>
-                <form method="POST" action="crud/orders/delete.php" id="deleteForm" style="display:inline;">
+                <form method="POST" action="crud/orders/delete" id="deleteForm" style="display:inline;">
                     <input type="hidden" name="id_order" id="deleteOrderId" value="">
                     <button type="submit" class="btn btn-danger px-4">
                         <i class="fa-solid fa-trash-can me-1"></i> Supprimer
@@ -401,7 +401,7 @@ include 'includes/header.php';
 
             var row = select.closest('tr');
 
-            fetch('crud/orders/update-status.php?id=' + orderId, {
+            fetch('crud/orders/update-status?id=' + orderId, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',

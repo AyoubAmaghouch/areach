@@ -719,7 +719,7 @@ include 'includes/navbar.php';
         }
 
         if (window.history && orderId) {
-            window.history.replaceState(null, '', 'checkout.php?step=done&order=' + encodeURIComponent(orderId));
+            window.history.replaceState(null, '', '/checkout?step=done&order=' + encodeURIComponent(orderId));
         }
     }
 
@@ -796,7 +796,7 @@ include 'includes/navbar.php';
         body.set('token', token);
 
         try {
-            const response = await fetch(button.dataset.confirmUrl || 'confirm-order.php', {
+            const response = await fetch(button.dataset.confirmUrl || '/confirm-order', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {

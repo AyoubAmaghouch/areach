@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -20,7 +20,7 @@ include '../../includes/header.php';
         </h1>
         <p class="page-subtitle">Créez une nouvelle bannière promotionnelle pour la page d'accueil.</p>
     </div>
-    <a href="../../banners.php" class="btn btn-outline-secondary btn-sm">
+    <a href="../../banners" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-arrow-left me-1"></i> Retour
     </a>
 </div>
@@ -34,7 +34,7 @@ include '../../includes/header.php';
                 <h3>Détails de la bannière</h3>
             </div>
             <div class="form-card-body">
-                <form action="store.php" method="POST" enctype="multipart/form-data">
+                <form action="store" method="POST" enctype="multipart/form-data">
                     <div class="row g-3">
 
                         <div class="col-12 col-md-6">
@@ -86,7 +86,7 @@ include '../../includes/header.php';
                         <button type="submit" class="btn-primary-admin">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
-                        <a href="../../banners.php" class="btn btn-outline-secondary">
+                        <a href="../../banners" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>

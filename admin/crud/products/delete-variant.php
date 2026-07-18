@@ -6,21 +6,21 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
 function redirectAfterVariantDelete(int $productId, string $message): never
 {
     $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'error'];
-    header('Location: edit.php?id=' . $productId);
+    header('Location: edit?id=' . $productId);
     exit;
 }
 
 function redirectAfterVariantDeleteSuccess(int $productId, string $message): never
 {
     $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'success'];
-    header('Location: edit.php?id=' . $productId);
+    header('Location: edit?id=' . $productId);
     exit;
 }
 
@@ -57,7 +57,7 @@ function removeProductFile(string $filename): void
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 
@@ -65,7 +65,7 @@ $productId = filter_var($_POST['id_product'] ?? null, FILTER_VALIDATE_INT);
 $variantId = filter_var($_POST['id_variant'] ?? null, FILTER_VALIDATE_INT);
 
 if (!$productId || $productId < 1 || !$variantId || $variantId < 1) {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 

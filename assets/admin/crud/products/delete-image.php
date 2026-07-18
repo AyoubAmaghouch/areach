@@ -6,21 +6,21 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
 function redirectAfterImageDelete(int $productId, string $message): never
 {
     $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'error'];
-    header('Location: edit.php?id=' . $productId);
+    header('Location: edit?id=' . $productId);
     exit;
 }
 
 function redirectAfterImageDeleteSuccess(int $productId, string $message): never
 {
     $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'success'];
-    header('Location: edit.php?id=' . $productId);
+    header('Location: edit?id=' . $productId);
     exit;
 }
 
@@ -57,7 +57,7 @@ function deleteVariantImageFile(string $filename): void
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 
@@ -70,7 +70,7 @@ if (
     || !$variantId || $variantId < 1
     || !$imageId || $imageId < 1
 ) {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 

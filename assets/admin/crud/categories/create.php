@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -20,7 +20,7 @@ include '../../includes/header.php';
         </h1>
         <p class="page-subtitle">Créez une nouvelle catégorie de produits.</p>
     </div>
-    <a href="../../categories.php" class="btn btn-outline-secondary btn-sm">
+    <a href="../../categories" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-arrow-left me-1"></i> Retour
     </a>
 </div>
@@ -34,7 +34,7 @@ include '../../includes/header.php';
                 <h3>Détails de la catégorie</h3>
             </div>
             <div class="form-card-body">
-                <form action="store.php" method="POST" enctype="multipart/form-data">
+                <form action="store" method="POST" enctype="multipart/form-data">
 
                     <div class="mb-4">
                         <label for="name" class="form-label fw-semibold">Nom de la catégorie <span class="text-danger">*</span></label>
@@ -63,7 +63,7 @@ include '../../includes/header.php';
                         <button type="submit" class="btn-primary-admin">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
-                        <a href="../../categories.php" class="btn btn-outline-secondary">
+                        <a href="../../categories" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>

@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
@@ -48,12 +48,12 @@ include '../../includes/header.php';
                             <h2 class="h4 mb-1">Ajouter un produit</h2>
                             <p class="text-muted mb-0">Créez un produit complet avec prix, stock, images et options.</p>
                         </div>
-                        <a href="../../products.php" class="btn btn-outline-secondary btn-sm">
+                        <a href="../../products" class="btn btn-outline-secondary btn-sm">
                             <i class="fa-solid fa-arrow-left me-1"></i> Retour
                         </a>
                     </div>
 
-                    <form id="product-create-form" action="store.php" method="POST" enctype="multipart/form-data" class="row g-4" novalidate>
+                    <form id="product-create-form" action="store" method="POST" enctype="multipart/form-data" class="row g-4" novalidate>
                         <div class="col-12">
                             <div class="card border-0 bg-light">
                                 <div class="card-body">
@@ -161,7 +161,7 @@ include '../../includes/header.php';
                         <?php endif; ?>
 
                         <div class="col-12 d-flex justify-content-between align-items-center">
-                            <a href="../../products.php" class="btn btn-outline-secondary">
+                            <a href="../../products" class="btn btn-outline-secondary">
                                 <i class="fa-solid fa-xmark me-1"></i> Annuler
                             </a>
                             <button type="submit" class="btn btn-primary">

@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -50,10 +50,10 @@ include 'includes/header.php';
         <p class="page-subtitle">Bienvenue, <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?> — voici un aperçu de votre boutique.</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="orders.php" class="btn btn-outline-secondary btn-sm">
+        <a href="orders" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-bag-shopping me-1"></i> Commandes
         </a>
-        <a href="crud/products/create.php" class="btn-primary-admin">
+        <a href="crud/products/create" class="btn-primary-admin">
             <i class="fa-solid fa-plus"></i> Nouveau produit
         </a>
     </div>
@@ -143,7 +143,7 @@ include 'includes/header.php';
             <i class="fa-solid fa-clock-rotate-left" style="color:var(--color-primary);"></i>
             Commandes récentes
         </div>
-        <a href="orders.php" class="btn btn-outline-secondary btn-sm">
+        <a href="orders" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-right me-1"></i> Voir tout
         </a>
     </div>
@@ -187,7 +187,7 @@ include 'includes/header.php';
                         <td><span class="badge-status <?= $badgeClass ?>"><?= $status ?></span></td>
                         <td class="text-muted"><?= htmlspecialchars(substr($order['created_at'] ?? '', 0, 10)) ?></td>
                         <td class="text-center">
-                            <a href="crud/orders/details.php?id=<?= (int)$order['id_order'] ?>"
+                            <a href="crud/orders/details?id=<?= (int)$order['id_order'] ?>"
                                class="btn btn-sm btn-action view"
                                data-bs-toggle="tooltip" title="Voir">
                                 <i class="fa-solid fa-eye"></i>
@@ -212,19 +212,19 @@ include 'includes/header.php';
                 </h2>
             </div>
             <div class="admin-card-body d-flex flex-wrap gap-3">
-                <a href="crud/products/create.php" class="btn btn-outline-primary">
+                <a href="crud/products/create" class="btn btn-outline-primary">
                     <i class="fa-solid fa-plus me-2"></i> Ajouter un produit
                 </a>
-                <a href="crud/categories/create.php" class="btn btn-outline-secondary">
+                <a href="crud/categories/create" class="btn btn-outline-secondary">
                     <i class="fa-solid fa-folder-plus me-2"></i> Ajouter une catégorie
                 </a>
-                <a href="orders.php" class="btn btn-outline-warning">
+                <a href="orders" class="btn btn-outline-warning">
                     <i class="fa-solid fa-bags-shopping me-2"></i> Voir les commandes
                 </a>
-                <a href="customers.php" class="btn btn-outline-info">
+                <a href="customers" class="btn btn-outline-info">
                     <i class="fa-solid fa-users me-2"></i> Voir les clients
                 </a>
-                <a href="settings.php" class="btn btn-outline-dark">
+                <a href="settings" class="btn btn-outline-dark">
                     <i class="fa-solid fa-sliders me-2"></i> Paramètres
                 </a>
             </div>

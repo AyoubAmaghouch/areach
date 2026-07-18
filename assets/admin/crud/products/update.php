@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
-    header("Location: ../../products.php");
+    header("Location: ../../products");
     exit;
 }
 
@@ -124,5 +124,5 @@ try {
 }
 
 $_SESSION['product_flash'] = ['type' => 'success', 'message' => 'Produit modifie avec succes.'];
-header("Location: edit.php?id=" . $id_product);
+header("Location: edit?id=" . $id_product);
 exit;

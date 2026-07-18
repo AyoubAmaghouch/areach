@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -16,7 +16,7 @@ if ($id < 1) {
         echo json_encode(['success' => false, 'message' => 'Campagne introuvable.']);
         exit;
     }
-    header("Location: ../../campaigns.php");
+    header("Location: ../../campaigns");
     exit;
 }
 
@@ -31,7 +31,7 @@ try {
             exit;
         }
         $_SESSION['campaign_flash'] = ['type' => 'error', 'message' => 'Campagne introuvable.'];
-        header("Location: ../../campaigns.php");
+        header("Location: ../../campaigns");
         exit;
     }
 
@@ -59,5 +59,5 @@ try {
     $_SESSION['campaign_flash'] = ['type' => 'error', 'message' => 'Erreur lors de la suppression.'];
 }
 
-header("Location: ../../campaigns.php");
+header("Location: ../../campaigns");
 exit;

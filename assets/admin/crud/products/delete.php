@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -36,7 +36,7 @@ if ($orderCount > 0) {
         echo json_encode(['success' => false, 'message' => 'Ce produit ne peut pas être supprimé car il est lié à des commandes existantes.']);
         exit;
     }
-    header("Location: ../../products.php?error=has_orders");
+    header("Location: ../../products?error=has_orders");
     exit;
 }
 
@@ -137,7 +137,7 @@ try {
         echo json_encode(['success' => false, 'message' => $msg]);
         exit;
     }
-    header("Location: ../../products.php?error=delete_failed");
+    header("Location: ../../products?error=delete_failed");
     exit;
 
 }
@@ -146,5 +146,5 @@ if ($isAjax) {
     echo json_encode(['success' => true, 'message' => 'Produit supprimé avec succès.']);
     exit;
 }
-header("Location: ../../products.php?success=deleted");
+header("Location: ../../products?success=deleted");
 exit;

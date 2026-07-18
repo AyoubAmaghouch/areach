@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -13,7 +13,7 @@ if (!isset($_GET['id'])) {
         echo json_encode(['success' => false, 'message' => 'Bannière introuvable.']);
         exit;
     }
-    header("Location: ../../banners.php");
+    header("Location: ../../banners");
     exit;
 }
 
@@ -72,7 +72,7 @@ try {
         echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression.']);
         exit;
     }
-    header("Location: ../../banners.php?error=delete_failed");
+    header("Location: ../../banners?error=delete_failed");
     exit;
 }
 
@@ -80,5 +80,5 @@ if ($isAjax) {
     echo json_encode(['success' => true, 'message' => 'Bannière supprimée avec succès.']);
     exit;
 }
-header("Location: ../../banners.php?success=deleted");
+header("Location: ../../banners?success=deleted");
 exit;

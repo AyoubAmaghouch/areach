@@ -16,7 +16,7 @@ declare(strict_types=1);
                         <p class="hero-slide__subtitle"><?= t('hero_slide1_subtitle') ?></p>
 
                         <div class="hero-slide__actions">
-                            <a href="shop.php" class="btn btn--accent hero-slide__btn">
+                            <a href="shop" class="btn btn--accent hero-slide__btn">
                                 <?= t('hero_slide1_btn_main') ?>
                             </a>
                             <a href="#nouveautes" class="btn btn--outline hero-slide__btn-secondary">
@@ -49,7 +49,7 @@ declare(strict_types=1);
                         <p class="hero-slide__subtitle"><?= t('hero_slide2_subtitle') ?></p>
 
                         <div class="hero-slide__actions">
-                            <a href="shop.php" class="btn btn--accent hero-slide__btn">
+                            <a href="shop" class="btn btn--accent hero-slide__btn">
                                 <?= t('hero_slide2_btn_main') ?>
                             </a>
                             <a href="#nouveautes" class="btn btn--outline hero-slide__btn-secondary">

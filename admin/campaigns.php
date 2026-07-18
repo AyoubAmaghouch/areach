@@ -4,7 +4,7 @@ require_once '../config/session.php';
 require_once '../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -23,7 +23,7 @@ include 'includes/header.php';
         </h1>
         <p class="page-subtitle"><?= count($campaigns) ?> campagne<?= count($campaigns) !== 1 ? 's' : '' ?></p>
     </div>
-    <a href="crud/campaigns/create.php" class="btn-primary-admin">
+    <a href="crud/campaigns/create" class="btn-primary-admin">
         <i class="fa-solid fa-plus"></i> Ajouter une campagne
     </a>
 </div>
@@ -77,7 +77,7 @@ include 'includes/header.php';
                             </td>
                             <td class="text-muted"><?= htmlspecialchars(substr($campaign['created_at'] ?? '', 0, 10)) ?></td>
                             <td>
-                                <a href="crud/campaigns/create.php?id=<?= (int) $campaign['id_campaign'] ?>" class="btn btn-sm btn-action edit me-1" data-bs-toggle="tooltip" title="Modifier">
+                                <a href="crud/campaigns/create?id=<?= (int) $campaign['id_campaign'] ?>" class="btn btn-sm btn-action edit me-1" data-bs-toggle="tooltip" title="Modifier">
                                     <i class="fa-solid fa-pen"></i>
                                 </a>
                             </td>

@@ -4,14 +4,14 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 function redirectCampaign(string $message, string $type = 'success'): never
 {
     $_SESSION['campaign_flash'] = ['message' => $message, 'type' => $type];
-    header("Location: ../../campaigns.php");
+    header("Location: ../../campaigns");
     exit;
 }
 
@@ -56,7 +56,7 @@ function campaignImageUpload(string $current = ''): string
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../../campaigns.php");
+    header("Location: ../../campaigns");
     exit;
 }
 

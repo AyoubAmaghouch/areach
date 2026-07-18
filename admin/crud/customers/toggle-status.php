@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../customers.php");
+    header("Location: ../../customers");
     exit;
 }
 
@@ -41,5 +41,5 @@ WHERE id_customer = ?
 
 $stmt->execute([$newStatus, $id]);
 
-header("Location: ../../customers.php");
+header("Location: ../../customers");
 exit;

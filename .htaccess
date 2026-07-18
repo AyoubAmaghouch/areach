@@ -1,0 +1,30 @@
+Options -MultiViews
+RewriteEngine On
+
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+index\.php[?\s] [NC]
+RewriteRule ^index\.php$ / [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+admin/crud/settings\.php/update\.php[?\s] [NC]
+RewriteRule ^admin/crud/settings\.php/update\.php$ /admin/crud/settings/update [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+assets/admin/crud/settings\.php/update\.php[?\s] [NC]
+RewriteRule ^assets/admin/crud/settings\.php/update\.php$ /assets/admin/crud/settings/update [R=301,L]
+
+RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[?\s] [NC]
+RewriteRule ^(.+?)\.php$ /$1 [R=301,L]
+
+RewriteCond %{REQUEST_FILENAME} -d [OR]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+RewriteRule ^admin/crud/settings/update$ admin/crud/settings.php/update.php [L,QSA]
+RewriteRule ^assets/admin/crud/settings/update$ assets/admin/crud/settings.php/update.php [L,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+RewriteRule ^(.+?)/?$ $1.php [L,QSA]
+
+RewriteCond %{DOCUMENT_ROOT}/index.php -f
+RewriteRule ^$ index.php [L,QSA]

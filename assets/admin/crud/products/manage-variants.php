@@ -7,14 +7,14 @@ require_once '../../../config/app.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
 $productId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 if (!$productId || $productId < 1) {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 
@@ -107,10 +107,10 @@ include '../../includes/header.php';
         </p>
     </div>
     <div class="d-flex gap-2">
-        <a href="edit.php?id=<?= variantEscape($productId) ?>" class="btn btn-outline-secondary btn-sm">
+        <a href="edit?id=<?= variantEscape($productId) ?>" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-pen me-1"></i> Modifier le produit
         </a>
-        <a href="../../products.php" class="btn btn-outline-secondary btn-sm">
+        <a href="../../products" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-left me-1"></i> Retour
         </a>
     </div>
@@ -132,7 +132,7 @@ include '../../includes/header.php';
             <div class="text-center py-5 text-muted">
                 <i class="fa-solid fa-palette fa-3x mb-3 d-block opacity-25"></i>
                 <p class="mb-0">Aucune variante pour ce produit.</p>
-                <a href="manage-variants.php?id=<?= variantEscape($productId) ?>&new=1" class="btn btn-primary mt-3">
+                <a href="manage-variants?id=<?= variantEscape($productId) ?>&new=1" class="btn btn-primary mt-3">
                     <i class="fa-solid fa-plus me-1"></i> Ajouter une variante
                 </a>
             </div>
@@ -174,7 +174,7 @@ include '../../includes/header.php';
                         <?= $inStock ? 'En stock' : 'Rupture' ?>
                     </span>
                     <!-- Delete button in Header -->
-                    <form action="delete-variant.php" method="post" class="d-inline" onsubmit="return confirm('Supprimer cette variante ?');">
+                    <form action="delete-variant" method="post" class="d-inline" onsubmit="return confirm('Supprimer cette variante ?');">
                         <?= variantCsrfField($csrfToken) ?>
                         <input type="hidden" name="id_product" value="<?= variantEscape($productId) ?>">
                         <input type="hidden" name="id_variant" value="<?= variantEscape($variant['id_variant']) ?>">
@@ -186,7 +186,7 @@ include '../../includes/header.php';
             </div>
 
             <!-- Card Body / Edit Form -->
-            <form action="update-variant.php" method="post" class="d-flex flex-column gap-3">
+            <form action="update-variant" method="post" class="d-flex flex-column gap-3">
                 <?= variantCsrfField($csrfToken) ?>
                 <input type="hidden" name="id_product" value="<?= variantEscape($productId) ?>">
                 <input type="hidden" name="id_variant" value="<?= variantEscape($variant['id_variant']) ?>">
@@ -306,7 +306,7 @@ include '../../includes/header.php';
 
                                 <div class="image-gallery-actions">
                                     <?php if (!$isPrimary): ?>
-                                        <form action="upload-image.php" method="post" class="m-0">
+                                        <form action="upload-image" method="post" class="m-0">
                                             <?= variantCsrfField($csrfToken) ?>
                                             <input type="hidden" name="action" value="set_primary">
                                             <input type="hidden" name="id_product" value="<?= variantEscape($productId) ?>">
@@ -317,7 +317,7 @@ include '../../includes/header.php';
                                             </button>
                                         </form>
                                     <?php endif; ?>
-                                    <form action="delete-image.php" method="post" class="m-0" onsubmit="return confirm('Supprimer l\'image ?');">
+                                    <form action="delete-image" method="post" class="m-0" onsubmit="return confirm('Supprimer l\'image ?');">
                                         <?= variantCsrfField($csrfToken) ?>
                                         <input type="hidden" name="id_product" value="<?= variantEscape($productId) ?>">
                                         <input type="hidden" name="id_variant" value="<?= variantEscape($variant['id_variant']) ?>">
@@ -334,7 +334,7 @@ include '../../includes/header.php';
 
 
                 <!-- Upload Form -->
-                <form action="upload-image.php" method="post" enctype="multipart/form-data" class="bg-light p-3 border rounded">
+                <form action="upload-image" method="post" enctype="multipart/form-data" class="bg-light p-3 border rounded">
                     <?= variantCsrfField($csrfToken) ?>
                     <input type="hidden" name="id_product" value="<?= variantEscape($productId) ?>">
                     <input type="hidden" name="id_variant" value="<?= variantEscape($variant['id_variant']) ?>">
@@ -367,7 +367,7 @@ include '../../includes/header.php';
             <h3>Nouvelle variante</h3>
         </div>
         <div class="form-card-body">
-            <form action="save-variant.php" method="post">
+            <form action="save-variant" method="post">
                 <?= variantCsrfField($csrfToken) ?>
                 <input type="hidden" name="id_product" value="<?= variantEscape($productId) ?>">
 
@@ -445,7 +445,7 @@ include '../../includes/header.php';
                         <button type="submit" class="btn btn-primary">
                             <i class="fa-solid fa-floppy-disk me-1"></i> Enregistrer
                         </button>
-                        <a href="manage-variants.php?id=<?= variantEscape($productId) ?>" class="btn btn-outline-secondary">
+                        <a href="manage-variants?id=<?= variantEscape($productId) ?>" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>
@@ -455,7 +455,7 @@ include '../../includes/header.php';
     </div>
 <?php else: ?>
     <div class="text-center py-4">
-        <a href="manage-variants.php?id=<?= variantEscape($productId) ?>&new=1" class="btn btn-primary">
+        <a href="manage-variants?id=<?= variantEscape($productId) ?>&new=1" class="btn btn-primary">
             <i class="fa-solid fa-plus me-1"></i> Ajouter une nouvelle variante
         </a>
     </div>

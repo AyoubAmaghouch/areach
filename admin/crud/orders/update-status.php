@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../orders.php");
+    header("Location: ../../orders");
     exit;
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => true, 'message' => 'Statut mis à jour.']);
         exit;
     }
-    header("Location: ../../orders.php");
+    header("Location: ../../orders");
     exit;
 }
 
@@ -69,7 +69,7 @@ include '../../includes/header.php';
             — <?= htmlspecialchars(($order['customer_name'] ?? '') . ' ' . ($order['customer_lastname'] ?? '')) ?>
         </p>
     </div>
-    <a href="details.php?id=<?= $id ?>" class="btn btn-outline-secondary btn-sm">
+    <a href="details?id=<?= $id ?>" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-arrow-left me-1"></i> Retour aux détails
     </a>
 </div>
@@ -115,7 +115,7 @@ include '../../includes/header.php';
                         <button type="submit" class="btn-primary-admin">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
-                        <a href="../../orders.php" class="btn btn-outline-secondary">
+                        <a href="../../orders" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>

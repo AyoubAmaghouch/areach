@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../categories.php");
+    header("Location: ../../categories");
     exit;
 }
 
@@ -51,7 +51,7 @@ $imgSrc = adminImagePath('categories', $category['image']);
         </h1>
         <p class="page-subtitle"><?= htmlspecialchars($translation['name'] ?? '') ?></p>
     </div>
-    <a href="../../categories.php" class="btn btn-outline-secondary btn-sm">
+    <a href="../../categories" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-arrow-left me-1"></i> Retour
     </a>
 </div>
@@ -65,7 +65,7 @@ $imgSrc = adminImagePath('categories', $category['image']);
                 <h3>Détails de la catégorie</h3>
             </div>
             <div class="form-card-body">
-                <form action="update.php" method="POST" enctype="multipart/form-data">
+                <form action="update" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="id" value="<?= $category['id_category'] ?>">
 
                     <div class="mb-4">
@@ -101,7 +101,7 @@ $imgSrc = adminImagePath('categories', $category['image']);
                         <button type="submit" class="btn-primary-admin">
                             <i class="fa-solid fa-floppy-disk"></i> Enregistrer
                         </button>
-                        <a href="../../categories.php" class="btn btn-outline-secondary">
+                        <a href="../../categories" class="btn btn-outline-secondary">
                             <i class="fa-solid fa-xmark me-1"></i> Annuler
                         </a>
                     </div>
@@ -138,7 +138,7 @@ $imgSrc = adminImagePath('categories', $category['image']);
             </div>
             <div class="modal-footer border-0 justify-content-end gap-2">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete.php?id=<?= $id ?>">
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete?id=<?= $id ?>">
                     <i class="fa-solid fa-trash me-1"></i> Supprimer
                 </button>
             </div>
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 showToast('success', data.message);
                 setTimeout(function() {
-                    window.location.href = '../../categories.php';
+                    window.location.href = '../../categories';
                 }, 2000);
             } else {
                 showToast('error', data.message);

@@ -34,7 +34,27 @@ if (!function_exists('rootUrl')) {
 
 if (!function_exists('adminUrl')) {
     function adminUrl(string $path): string {
-        return $GLOBALS['relativePathToRoot'] . 'admin/' . ltrim($path, '/');
+        $path = str_replace('\\', '/', ltrim($path, '/'));
+        $fragment = '';
+        $query = '';
+
+        if (($fragmentPosition = strpos($path, '#')) !== false) {
+            $fragment = substr($path, $fragmentPosition);
+            $path = substr($path, 0, $fragmentPosition);
+        }
+
+        if (($queryPosition = strpos($path, '?')) !== false) {
+            $query = substr($path, $queryPosition);
+            $path = substr($path, 0, $queryPosition);
+        }
+
+        if ($path === 'index.php' || $path === 'index') {
+            $path = '';
+        } elseif (str_ends_with($path, '.php')) {
+            $path = substr($path, 0, -4);
+        }
+
+        return $GLOBALS['relativePathToRoot'] . 'admin/' . ltrim($path . $query . $fragment, '/');
     }
 }
 

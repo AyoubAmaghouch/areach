@@ -4,7 +4,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
@@ -43,11 +43,11 @@ include '../../includes/header.php';
         <p class="page-subtitle"><?= htmlspecialchars(($customer['nom'] ?? '') . ' ' . ($customer['prenom'] ?? '')) ?></p>
     </div>
     <div class="d-flex gap-2">
-        <a href="toggle-status.php?id=<?= $id ?>" class="btn <?= $customer['status'] ? 'btn-outline-danger' : 'btn-outline-success' ?> btn-sm">
+        <a href="toggle-status?id=<?= $id ?>" class="btn <?= $customer['status'] ? 'btn-outline-danger' : 'btn-outline-success' ?> btn-sm">
             <i class="fa-solid <?= $customer['status'] ? 'fa-ban' : 'fa-check' ?> me-1"></i>
             <?= $customer['status'] ? 'Bloquer' : 'Activer' ?>
         </a>
-        <a href="../../customers.php" class="btn btn-outline-secondary btn-sm">
+        <a href="../../customers" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-left me-1"></i> Retour
         </a>
     </div>
@@ -145,7 +145,7 @@ include '../../includes/header.php';
                                 </td>
                                 <td class="text-muted"><?= htmlspecialchars(substr($order['created_at'] ?? '', 0, 10)) ?></td>
                                 <td class="text-center">
-                                    <a href="../orders/details.php?id=<?= (int)$order['id_order'] ?>"
+                                    <a href="../orders/details?id=<?= (int)$order['id_order'] ?>"
                                        class="btn btn-sm btn-action view"
                                        data-bs-toggle="tooltip" title="Voir la commande">
                                         <i class="fa-solid fa-eye"></i>

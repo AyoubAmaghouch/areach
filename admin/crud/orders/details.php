@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../orders.php");
+    header("Location: ../../orders");
     exit;
 }
 
@@ -131,10 +131,10 @@ if ($isPrintMode): ?>
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-print me-1"></i> Imprimer
         </button>
-        <a href="update-status.php?id=<?= $id ?>" class="btn btn-outline-primary btn-sm">
+        <a href="update-status?id=<?= $id ?>" class="btn btn-outline-primary btn-sm">
             <i class="fa-solid fa-pen-to-square me-1"></i> Changer le statut
         </a>
-        <a href="../../orders.php" class="btn btn-outline-secondary btn-sm">
+        <a href="../../orders" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-left me-1"></i> Retour
         </a>
     </div>

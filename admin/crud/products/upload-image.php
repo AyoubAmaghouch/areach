@@ -6,7 +6,7 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: ../../login.php');
+    header('Location: ../../login');
     exit;
 }
 
@@ -15,14 +15,14 @@ const MAX_VARIANT_IMAGE_SIZE = 5 * 1024 * 1024;
 function redirectAfterImageUpload(int $productId, string $message): never
 {
     $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'error'];
-    header('Location: edit.php?id=' . $productId);
+    header('Location: edit?id=' . $productId);
     exit;
 }
 
 function redirectAfterImageUploadSuccess(int $productId, string $message): never
 {
     $_SESSION['variant_flash'] = ['message' => $message, 'type' => 'success'];
-    header('Location: edit.php?id=' . $productId);
+    header('Location: edit?id=' . $productId);
     exit;
 }
 
@@ -81,7 +81,7 @@ function validatedImageUpload(array $upload, finfo $finfo): array
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 
@@ -89,7 +89,7 @@ $productId = filter_var($_POST['id_product'] ?? null, FILTER_VALIDATE_INT);
 $variantId = filter_var($_POST['id_variant'] ?? null, FILTER_VALIDATE_INT);
 
 if (!$productId || $productId < 1 || !$variantId || $variantId < 1) {
-    header('Location: ../../products.php');
+    header('Location: ../../products');
     exit;
 }
 

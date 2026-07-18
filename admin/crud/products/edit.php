@@ -4,12 +4,12 @@ require_once '../../../config/session.php';
 require_once '../../../config/database.php';
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: ../../login.php");
+    header("Location: ../../login");
     exit;
 }
 
 if (!isset($_GET['id'])) {
-    header("Location: ../../products.php");
+    header("Location: ../../products");
     exit;
 }
 
@@ -135,13 +135,13 @@ $primaryImageSrc = $primaryImage
         </p>
     </div>
     <div class="d-flex gap-2">
-        <a href="../../products.php" class="btn btn-outline-secondary btn-sm">
+        <a href="../../products" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-left me-1"></i> Retour
         </a>
     </div>
 </div>
 
-<form action="update.php" method="POST">
+<form action="update" method="POST">
     <input type="hidden" name="id_product" value="<?= (int) $product['id_product'] ?>">
 
     <div class="row g-4">
@@ -239,7 +239,7 @@ $primaryImageSrc = $primaryImage
 
     <!-- Sticky Footer -->
     <div class="sticky-form-footer mt-4">
-        <a href="../../products.php" class="btn btn-outline-secondary">
+        <a href="../../products" class="btn btn-outline-secondary">
             <i class="fa-solid fa-xmark me-1"></i> Annuler
         </a>
         <button type="submit" class="btn-primary-admin">
@@ -289,7 +289,7 @@ $primaryImageSrc = $primaryImage
 
                                 <div class="image-gallery-actions">
                                     <?php if (!$isPrimary): ?>
-                                        <form action="upload-image.php" method="post" class="m-0">
+                                        <form action="upload-image" method="post" class="m-0">
                                             <?= productEditCsrfField($csrfToken) ?>
                                             <input type="hidden" name="action" value="set_primary">
                                             <input type="hidden" name="id_product" value="<?= (int) $id ?>">
@@ -300,7 +300,7 @@ $primaryImageSrc = $primaryImage
                                             </button>
                                         </form>
                                     <?php endif; ?>
-                                    <form action="delete-image.php" method="post" class="m-0" onsubmit="return confirm('Supprimer l\'image ?');">
+                                    <form action="delete-image" method="post" class="m-0" onsubmit="return confirm('Supprimer l\'image ?');">
                                         <?= productEditCsrfField($csrfToken) ?>
                                         <input type="hidden" name="id_product" value="<?= (int) $id ?>">
                                         <input type="hidden" name="id_variant" value="<?= (int) $image['id_variant'] ?>">
@@ -318,7 +318,7 @@ $primaryImageSrc = $primaryImage
                 <?php endif; ?>
 
                 <?php if ($uploadVariantId > 0): ?>
-                    <form action="upload-image.php" method="post" enctype="multipart/form-data" class="bg-light p-3 border rounded mt-3">
+                    <form action="upload-image" method="post" enctype="multipart/form-data" class="bg-light p-3 border rounded mt-3">
                         <?= productEditCsrfField($csrfToken) ?>
                         <input type="hidden" name="id_product" value="<?= (int) $id ?>">
                         <input type="hidden" name="id_variant" value="<?= (int) $uploadVariantId ?>">
@@ -375,7 +375,7 @@ $primaryImageSrc = $primaryImage
             </div>
             <div class="modal-footer border-0 justify-content-end gap-2">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete.php?id=<?= $id ?>">
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-url="delete?id=<?= $id ?>">
                     <i class="fa-solid fa-trash me-1"></i> Supprimer
                 </button>
             </div>
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 showToast('success', data.message);
                 setTimeout(function() {
-                    window.location.href = '../../products.php';
+                    window.location.href = '../../products';
                 }, 2000);
             } else {
                 showToast('error', data.message);
