@@ -1,18 +1,9 @@
 <?php
-/*
- * AwardSpace production database configuration.
- *
- * Hosting details:
- *   Host: fdb1029.awardspace.net
- *   Port: 3306
- *   DB:   4772751_areach
- *   User: 4772751_areach
- */
 
-$host = 'fdb1029.awardspace.net';
+$host = 'localhost';
 $port = '3306';
-$db   = '4772751_areach';
-$user = '4772751_areach';
+$db   = 'u184188115_areach';
+$user = 'u184188115_areach';
 $pass = 'Kingfb12@';
 
 if (!extension_loaded('pdo') || !extension_loaded('pdo_mysql')) {

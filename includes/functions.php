@@ -236,7 +236,8 @@ function imagePath(string $folder, ?string $filename): string
     }
 
     $folder = trim(str_replace('\\', '/', $folder), '/');
-    $filename = ltrim(str_replace('\\', '/', $filename), '/');
+    $filename = trim(ltrim(str_replace('\\', '/', $filename), '/'));
+    $publicRoot = realpath(__DIR__ . '/..') ?: dirname(__DIR__);
 
     $candidatePaths = [
         'assets/images/' . $folder . '/' . $filename,
@@ -244,7 +245,7 @@ function imagePath(string $folder, ?string $filename): string
     ];
 
     foreach ($candidatePaths as $candidatePath) {
-        if (file_exists(__DIR__ . '/../' . $candidatePath)) {
+        if (is_file($publicRoot . '/' . $candidatePath)) {
             return $candidatePath;
         }
     }
@@ -254,7 +255,7 @@ function imagePath(string $folder, ?string $filename): string
     if ($folder === 'products' && !str_contains($filename, '/')) {
         if ($productImagePaths === null) {
             $productImagePaths = [];
-            $productRoot = __DIR__ . '/../assets/images/products';
+            $productRoot = $publicRoot . '/assets/images/products';
 
             if (is_dir($productRoot)) {
                 $iterator = new RecursiveIteratorIterator(
@@ -269,15 +270,21 @@ function imagePath(string $folder, ?string $filename): string
                     $relativePath = str_replace(
                         '\\',
                         '/',
-                        substr($file->getPathname(), strlen(__DIR__ . '/../'))
+                        substr($file->getPathname(), strlen($publicRoot . '/'))
                     );
                     $productImagePaths[$file->getFilename()] = $relativePath;
+                    $productImagePaths[strtolower($file->getFilename())] = $relativePath;
                 }
             }
         }
 
         if (isset($productImagePaths[$filename])) {
             return $productImagePaths[$filename];
+        }
+
+        $lowerFilename = strtolower($filename);
+        if (isset($productImagePaths[$lowerFilename])) {
+            return $productImagePaths[$lowerFilename];
         }
     }
 
