@@ -68,9 +68,14 @@ function asset(string $path): string
 {
     $path = str_replace('\\', '/', ltrim($path, '/'));
     $path = preg_replace('#/+#', '/', $path) ?? $path;
-    $path = str_replace(' ', '%20', $path);
 
-    return 'assets/' . $path;
+    if (!str_starts_with($path, 'assets/')) {
+        $path = 'assets/' . $path;
+    }
+
+    $segments = array_map('rawurlencode', explode('/', $path));
+
+    return '/' . implode('/', $segments);
 }
 
 function pageUrl(string $path = ''): string
@@ -231,64 +236,123 @@ function imagePath(string $folder, ?string $filename): string
 {
     static $productImagePaths = null;
 
-    if ($filename === null || trim($filename) === '') {
+    $folder = trim(str_replace('\\', '/', $folder), '/');
+    $filename = normalizeImageFilename($filename);
+
+    if ($folder === '' || $filename === '') {
         return '';
     }
 
-    $folder = trim(str_replace('\\', '/', $folder), '/');
-    $filename = trim(ltrim(str_replace('\\', '/', $filename), '/'));
-    $publicRoot = realpath(__DIR__ . '/..') ?: dirname(__DIR__);
+    $publicRoot = realpath(__DIR__ . '/..');
+
+    if ($publicRoot === false) {
+        return '';
+    }
 
     $candidatePaths = [
         'assets/images/' . $folder . '/' . $filename,
-        'assets/uploads/' . $folder . '/' . $filename,
     ];
 
     foreach ($candidatePaths as $candidatePath) {
         if (is_file($publicRoot . '/' . $candidatePath)) {
-            return $candidatePath;
+            return asset($candidatePath);
         }
     }
 
-    // Product creation stores images in assets/images/products/<category-id>/,
-    // while product_images.image intentionally contains only the filename.
-    if ($folder === 'products' && !str_contains($filename, '/')) {
-        if ($productImagePaths === null) {
-            $productImagePaths = [];
-            $productRoot = $publicRoot . '/assets/images/products';
+    if ($folder !== 'products') {
+        return '';
+    }
 
-            if (is_dir($productRoot)) {
-                $iterator = new RecursiveIteratorIterator(
-                    new RecursiveDirectoryIterator($productRoot, FilesystemIterator::SKIP_DOTS)
-                );
+    if ($productImagePaths === null) {
+        $productImagePaths = [];
+        $productRoot = $publicRoot . '/assets/images/products';
 
-                foreach ($iterator as $file) {
-                    if (!$file->isFile()) {
-                        continue;
-                    }
+        if (is_dir($productRoot)) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($productRoot, FilesystemIterator::SKIP_DOTS)
+            );
 
-                    $relativePath = str_replace(
-                        '\\',
-                        '/',
-                        substr($file->getPathname(), strlen($publicRoot . '/'))
-                    );
-                    $productImagePaths[$file->getFilename()] = $relativePath;
-                    $productImagePaths[strtolower($file->getFilename())] = $relativePath;
+            foreach ($iterator as $file) {
+                if (!$file->isFile()) {
+                    continue;
+                }
+
+                $absolutePath = str_replace('\\', '/', $file->getPathname());
+                $relativePath = substr($absolutePath, strlen(str_replace('\\', '/', $publicRoot)) + 1);
+                $fileBasename = imageBasename($file->getFilename());
+                $lookupKey = imageLookupKey($fileBasename);
+
+                if ($lookupKey !== '') {
+                    $productImagePaths[$lookupKey] = [
+                        'basename' => $fileBasename,
+                        'path' => $relativePath,
+                    ];
                 }
             }
         }
+    }
 
-        if (isset($productImagePaths[$filename])) {
-            return $productImagePaths[$filename];
-        }
+    $normalizedFilename = normalizeImageFilename($filename);
+    $basename = imageBasename($normalizedFilename);
+    $lookupKey = imageLookupKey($basename);
 
-        $lowerFilename = strtolower($filename);
-        if (isset($productImagePaths[$lowerFilename])) {
-            return $productImagePaths[$lowerFilename];
+    if (isset($_GET['debug_images']) && $_GET['debug_images'] === '1') {
+        echo '<pre>';
+        echo 'Lookup key: ' . $lookupKey . PHP_EOL;
+        echo 'Filename: ' . $basename . PHP_EOL;
+        echo 'Indexed images: ' . count($productImagePaths) . PHP_EOL;
+        print_r(array_slice(array_keys($productImagePaths), 0, 20));
+        exit;
+    }
+
+    if (isset($productImagePaths[$lookupKey])) {
+        return asset($productImagePaths[$lookupKey]['path']);
+    }
+
+    error_log('imagePath lookup failed: lookupKey=' . var_export($lookupKey, true));
+    error_log('imagePath lookup failed: basename=' . var_export($basename, true));
+    error_log('imagePath lookup failed: normalizedFilename=' . var_export($normalizedFilename, true));
+    error_log('imagePath lookup failed: availableKeys=' . json_encode(array_keys($productImagePaths), JSON_UNESCAPED_SLASHES));
+
+    foreach ($productImagePaths as $image) {
+        if (strcasecmp($image['basename'], $basename) === 0) {
+            return asset($image['path']);
         }
     }
 
-    return asset('uploads/' . $folder . '/' . $filename);
+    return '';
+}
+
+function normalizeImageFilename(?string $filename): string
+{
+    if ($filename === null) {
+        return '';
+    }
+
+    $filename = str_replace('\\', '/', $filename);
+    $filename = html_entity_decode($filename, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $filename = rawurldecode($filename);
+    $filename = preg_replace('/^\xEF\xBB\xBF/', '', $filename) ?? $filename;
+    $filename = preg_replace('/[\x00-\x1F\x7F\x{200B}-\x{200D}\x{FEFF}]/u', '', $filename) ?? $filename;
+    $filename = preg_replace('/^[\s\x{00A0}]+|[\s\x{00A0}]+$/u', '', $filename) ?? $filename;
+
+    return ltrim(trim($filename), '/');
+}
+
+function imageLookupKey(string $filename): string
+{
+    $filename = normalizeImageFilename($filename);
+    $filename = preg_replace('/[\s\x{00A0}\x{200B}-\x{200D}\x{FEFF}]+/u', '', $filename) ?? $filename;
+
+    return strtolower($filename);
+}
+
+function imageBasename(string $filename): string
+{
+    $filename = normalizeImageFilename($filename);
+    $parts = explode('/', $filename);
+
+    return end($parts) ?: '';
 }
 
 function isPromotionActive(array $variant): bool

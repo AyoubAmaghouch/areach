@@ -102,13 +102,15 @@ if (
 
 try {
     $variantStatement = $pdo->prepare(
-        'SELECT id_variant
-         FROM product_variants
-         WHERE id_variant = :id_variant AND id_product = :id_product'
+        'SELECT pv.id_variant, p.id_category
+         FROM product_variants pv
+         INNER JOIN products p ON p.id_product = pv.id_product
+         WHERE pv.id_variant = :id_variant AND pv.id_product = :id_product'
     );
     $variantStatement->execute(['id_variant' => $variantId, 'id_product' => $productId]);
+    $variant = $variantStatement->fetch();
 
-    if (!$variantStatement->fetch()) {
+    if (!$variant) {
         throw new InvalidArgumentException('Variant not found.');
     }
 
@@ -166,7 +168,7 @@ try {
         throw new InvalidArgumentException('No images were selected.');
     }
 
-    $uploadDirectory = dirname(__DIR__, 3) . '/assets/uploads/products';
+    $uploadDirectory = dirname(__DIR__, 3) . '/assets/images/products/' . (int) $variant['id_category'];
     if (!is_dir($uploadDirectory) && !mkdir($uploadDirectory, 0755, true) && !is_dir($uploadDirectory)) {
         throw new RuntimeException('The image upload directory could not be created.');
     }
